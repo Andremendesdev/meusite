@@ -1,0 +1,216 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-01T23:15:00.000Z",
+  "title": "Design System: meusite",
+  "extensions": {
+    "colorMeta": {
+      "void": {
+        "role": "neutral",
+        "displayName": "Void Canvas",
+        "canonical": "oklch(0.08 0 0)",
+        "tonalRamp": [
+          "oklch(0.08 0 0)",
+          "oklch(0.12 0 0)",
+          "oklch(0.15 0.005 160)",
+          "oklch(0.22 0.01 160)",
+          "oklch(0.35 0.01 160)",
+          "oklch(0.50 0.01 160)",
+          "oklch(0.65 0.01 160)",
+          "oklch(0.80 0.01 160)"
+        ]
+      },
+      "moss": {
+        "role": "primary",
+        "displayName": "Moss Signal",
+        "canonical": "oklch(0.4 0.087 160)",
+        "tonalRamp": [
+          "oklch(0.15 0.04 160)",
+          "oklch(0.22 0.06 160)",
+          "oklch(0.30 0.075 160)",
+          "oklch(0.40 0.087 160)",
+          "oklch(0.52 0.11 160)",
+          "oklch(0.62 0.10 160)",
+          "oklch(0.75 0.07 160)",
+          "oklch(0.88 0.04 160)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "oklch(0.93 0 0)",
+        "tonalRamp": [
+          "oklch(0.20 0 0)",
+          "oklch(0.35 0 0)",
+          "oklch(0.50 0 0)",
+          "oklch(0.65 0 0)",
+          "oklch(0.72 0.02 160)",
+          "oklch(0.80 0.01 160)",
+          "oklch(0.88 0 0)",
+          "oklch(0.93 0 0)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted",
+        "canonical": "oklch(0.72 0.02 160)",
+        "tonalRamp": [
+          "oklch(0.25 0.02 160)",
+          "oklch(0.35 0.02 160)",
+          "oklch(0.45 0.02 160)",
+          "oklch(0.55 0.02 160)",
+          "oklch(0.65 0.02 160)",
+          "oklch(0.72 0.02 160)",
+          "oklch(0.82 0.015 160)",
+          "oklch(0.92 0.01 160)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Hero statement only — staggered letters, Dogstudio-style."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Section titles."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Project names and about name."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Descriptions, bios — max ~55ch."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Section labels, tags, nav meta — uppercase tracked."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "ease-out-expo",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Default easing for hovers, reveals, and hero-rise."
+      },
+      {
+        "name": "duration-fast",
+        "value": "180ms",
+        "purpose": "Button hovers, nav color, arrow nudge."
+      },
+      {
+        "name": "duration-med",
+        "value": "420ms",
+        "purpose": "Scroll reveals, project row background."
+      },
+      {
+        "name": "duration-slow",
+        "value": "800ms",
+        "purpose": "Hero letter stagger entrance."
+      },
+      {
+        "name": "hero-rise",
+        "value": "translateY(1.1em) → 0, opacity 0 → 1",
+        "purpose": "Per-letter hero animation, 35ms stagger via --char-index."
+      }
+    ],
+    "breakpoints": [
+      { "name": "md", "value": "48rem" },
+      { "name": "lg", "value": "56rem" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Moss CTA — hero and inline actions.",
+      "html": "<button class=\"ds-btn-primary\">Falar no WhatsApp <span aria-hidden=\"true\">↗</span></button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.875rem 1.5rem; background: oklch(0.4 0.087 160); color: oklch(0.08 0 0); font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-weight: 600; font-size: 0.9375rem; letter-spacing: 0.02em; border: none; border-radius: 0; cursor: pointer; transition: background 180ms cubic-bezier(0.16, 1, 0.3, 1), transform 180ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-btn-primary:hover { background: oklch(0.52 0.11 160); transform: translateY(-2px); } .ds-btn-primary:active { transform: translateY(0); } .ds-btn-primary:focus-visible { outline: 2px solid oklch(0.52 0.11 160); outline-offset: 3px; }"
+    },
+    {
+      "name": "Contact Button",
+      "kind": "button",
+      "refersTo": "button-primary-large",
+      "description": "Large moss CTA for contact panel.",
+      "html": "<a class=\"ds-btn-contact\" href=\"#\">(14) 99604-0987 <span aria-hidden=\"true\">↗</span></a>",
+      "css": ".ds-btn-contact { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 1rem 2rem; background: oklch(0.4 0.087 160); color: oklch(0.08 0 0); font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-weight: 700; font-size: 1rem; text-decoration: none; white-space: nowrap; border-radius: 0; transition: background 180ms cubic-bezier(0.16, 1, 0.3, 1), transform 180ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-btn-contact:hover { background: oklch(0.52 0.11 160); transform: translateY(-2px); } .ds-btn-contact:focus-visible { outline: 2px solid oklch(0.52 0.11 160); outline-offset: 3px; }"
+    },
+    {
+      "name": "Nav Link",
+      "kind": "nav",
+      "refersTo": "nav-link",
+      "description": "Lowercase tracked nav anchor.",
+      "html": "<a class=\"ds-nav-link\" href=\"#trabalhos\">trabalhos</a>",
+      "css": ".ds-nav-link { font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; letter-spacing: 0.04em; text-transform: lowercase; color: oklch(0.93 0 0); text-decoration: none; transition: color 180ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-nav-link:hover { color: oklch(0.52 0.11 160); } .ds-nav-link:focus-visible { outline: 2px solid oklch(0.52 0.11 160); outline-offset: 3px; }"
+    },
+    {
+      "name": "Section Label",
+      "kind": "chip",
+      "description": "Uppercase moss section kicker — one per section max.",
+      "html": "<p class=\"ds-section-label\">Sobre</p>",
+      "css": ".ds-section-label { margin: 0; font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: oklch(0.4 0.087 160); }"
+    },
+    {
+      "name": "Project Row",
+      "kind": "card",
+      "description": "Full-width immersive project link — not a card grid.",
+      "html": "<a class=\"ds-project-row\" href=\"#\"><span class=\"ds-project-index\">01</span><div class=\"ds-project-body\"><span class=\"ds-project-tag\">Bar & Restaurante</span><h3 class=\"ds-project-title\">Oishi Adrenalina</h3><p class=\"ds-project-desc\">Site para restaurante e bar japonês em Piraju.</p></div><span class=\"ds-project-arrow\" aria-hidden=\"true\">↗</span></a>",
+      "css": ".ds-project-row { display: grid; gap: 1.5rem; padding: 2.5rem 1rem; text-decoration: none; color: oklch(0.93 0 0); border-top: 1px solid oklch(0.22 0.01 160); transition: background 420ms cubic-bezier(0.16, 1, 0.3, 1), padding-inline 420ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-project-row:hover { background: oklch(0.15 0.005 160); padding-inline: 2rem; } .ds-project-index { font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.08em; color: oklch(0.4 0.087 160); } .ds-project-tag { display: block; margin-bottom: 1rem; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: oklch(0.72 0.02 160); } .ds-project-title { margin: 0 0 0.5rem; font-size: clamp(2rem, 6vw, 4rem); font-weight: 800; line-height: 1; letter-spacing: -0.03em; } .ds-project-desc { margin: 0; max-width: 48ch; color: oklch(0.72 0.02 160); line-height: 1.65; } .ds-project-arrow { font-size: 1.5rem; color: oklch(0.4 0.087 160); align-self: center; transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-project-row:hover .ds-project-arrow { transform: translate(4px, -4px); } .ds-project-row:focus-visible { outline: 2px solid oklch(0.52 0.11 160); outline-offset: 3px; }"
+  ],
+  "narrative": {
+    "northStar": "The Crafted Stage",
+    "overview": "Portfólio de André Mendes onde superfície escura é palco e o craft é o espetáculo. Inspirado em Dogstudio: tipografia display como statement, trabalhos como lista imersiva, voz confiante. Acento verde-musgo pontual; personalidade na tipografia e no motion.",
+    "keyCharacteristics": [
+      "Void canvas oklch(0.08 0 0) — palco escuro sem tint quente",
+      "Moss signal raro — único acento saturado",
+      "Bricolage Grotesque única — hierarquia por peso",
+      "Display hero com letras separadas e stagger",
+      "Lista de projetos full-width, zero card grid",
+      "Flat surfaces; profundidade por tonal layering"
+    ],
+    "rules": [
+      {
+        "name": "The ≤10% Rule",
+        "body": "Moss saturado nunca domina a viewport. Um CTA por zona, acento em detalhes — raridade é o ponto.",
+        "section": "colors"
+      },
+      {
+        "name": "The Pure Void Rule",
+        "body": "Fundo chroma 0. Personalidade vem do acento e da tipografia, não de cream no body.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Family Rule",
+        "body": "Bricolage Grotesque carrega tudo. Sem pairing serif+sans.",
+        "section": "typography"
+      },
+      {
+        "name": "The Dogstudio Display Rule",
+        "body": "Hero é tipografia coreografada — letras separadas, hero-rise stagger 35ms/letra.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-Until-Interaction Rule",
+        "body": "Superfícies planas em repouso. Hover muda tom ou posição — nunca ghost-card.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do usar void canvas com moss em ≤10% da superfície",
+      "Do coreografar hero por letra e reveals no scroll — conteúdo visível sem JS",
+      "Do lista imersiva de projetos — full-width rows, não card grid",
+      "Do respeitar prefers-reduced-motion",
+      "Do manter contraste ink/void ≥7:1"
+    ],
+    "donts": [
+      "Don't usar SaaS clichê: grids de cards idênticos, hero-metric, gradientes decorativos",
+      "Don't cair no visual feito por IA: cream/sand, glassmorphism, eyebrows em todas as seções",
+      "Don't parecer landing startup 2023",
+      "Don't parecer clone Linear/Vercel dark sem alma",
+      "Don't usar border 1px + box-shadow blur ≥16px no mesmo elemento",
+      "Don't gate conteúdo em animação"
+    ]
+  }
+}

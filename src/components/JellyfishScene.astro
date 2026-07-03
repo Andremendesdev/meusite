@@ -1,0 +1,21 @@
+---
+/** Água-viva 3D fixa atrás do conteúdo — reage a scroll e cursor. */
+---
+
+<canvas id="jellyfish-canvas" class="jellyfish-canvas" aria-hidden="true"></canvas>
+
+<script>
+  import { initJellyfishScene } from '../scripts/jellyfish/index';
+
+  const canvas = document.getElementById('jellyfish-canvas') as HTMLCanvasElement | null;
+  if (canvas) {
+    try {
+      const destroy = initJellyfishScene(canvas);
+      document.addEventListener('astro:before-swap', () => destroy(), { once: true });
+    } catch {
+      canvas.hidden = true;
+      document.documentElement.classList.add('no-webgl');
+      document.dispatchEvent(new CustomEvent('jellyfish:unavailable', { detail: { reason: 'init-error' } }));
+    }
+  }
+</script>

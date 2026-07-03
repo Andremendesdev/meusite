@@ -1,0 +1,50 @@
+---
+/** Organic neon blobs + grain. Cursor parallax on fine pointer devices only. */
+---
+
+<div class="bg-atmosphere" id="bg-atmosphere" aria-hidden="true">
+  <div class="bg-atmosphere__blob bg-atmosphere__blob--1"></div>
+  <div class="bg-atmosphere__blob bg-atmosphere__blob--2"></div>
+  <div class="bg-atmosphere__blob bg-atmosphere__blob--3"></div>
+  <div class="bg-atmosphere__abyss"></div>
+  <div class="bg-atmosphere__grain"></div>
+</div>
+
+<script>
+  const el = document.getElementById('bg-atmosphere');
+  if (!el) throw new Error('bg-atmosphere missing');
+
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const fine = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+  if (reduced || !fine) {
+    el.classList.add('bg-atmosphere--static');
+  } else {
+    let raf = 0;
+    let tx = 0;
+    let ty = 0;
+    let cx = 0;
+    let cy = 0;
+
+    const onMove = (e: MouseEvent) => {
+      tx = (e.clientX / window.innerWidth - 0.5) * 40;
+      ty = (e.clientY / window.innerHeight - 0.5) * 40;
+    };
+
+    const loop = () => {
+      cx += (tx - cx) * 0.05;
+      cy += (ty - cy) * 0.05;
+      el.style.setProperty('--px', `${cx}px`);
+      el.style.setProperty('--py', `${cy}px`);
+      raf = requestAnimationFrame(loop);
+    };
+
+    window.addEventListener('mousemove', onMove, { passive: true });
+    raf = requestAnimationFrame(loop);
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) cancelAnimationFrame(raf);
+      else raf = requestAnimationFrame(loop);
+    });
+  }
+</script>

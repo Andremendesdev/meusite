@@ -1,0 +1,191 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const projects = [
+  {
+    index: '01',
+    name: 'Oishi Adrenalina',
+    tag: 'Bar & Restaurante',
+    url: 'https://www.oishiadrenalina.com.br',
+    description:
+      'Site para restaurante e bar japonês em Piraju — gastronomia, drinks autorais e programação ao vivo em experiência imersiva.',
+  },
+  {
+    index: '02',
+    name: 'Na Garage',
+    tag: 'Barbearia',
+    url: 'https://www.nagarage.com.br',
+    description:
+      'Presença digital para barbearia desde 2019 — direto, sem frescura, com identidade forte e conversão via WhatsApp.',
+  },
+];
+
+const whatsappUrl = 'https://wa.me/5514996040987?text=Ol%C3%A1%20Andr%C3%A9%2C%20vi%20seu%20portf%C3%B3lio%20e%20quero%20conversar.';
+---
+
+<Layout
+  title="André Mendes — desenvolvedor e designer"
+  description="André Mendes, desenvolvedor e designer. Faço sites rápidos com design que converte."
+>
+  <a href="#main" class="sr-only">Ir para o conteúdo</a>
+
+  <header class="site-nav" aria-label="Navegação principal">
+    <a href="/" class="site-nav__brand">André Mendes</a>
+    <nav>
+      <ul class="site-nav__links">
+        <li><a href="#trabalhos">trabalhos</a></li>
+        <li><a href="#sobre">sobre</a></li>
+        <li><a href="#contato">contato</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section id="hero" class="hero" aria-labelledby="hero-heading" data-jellyfish-section="hero">
+      <a href="#trabalhos" class="hero__skip" data-hero-skip>Pular Introdução</a>
+      <div class="hero__sticky container--wide">
+        <div class="hero__content">
+          <p class="hero__eyebrow">Olá, eu sou</p>
+
+          <h1
+            id="hero-heading"
+            class="hero__display"
+            aria-label="André Mendes — desenvolvedor e designer"
+          >
+            <span class="hero__line">André Mendes</span>
+            <span class="hero__line hero__line--role">
+              Desenvolvedor <span class="hero__line--accent">&amp; Designer</span>
+            </span>
+          </h1>
+
+          <p class="hero__subline" aria-live="polite" aria-atomic="true">
+            <span data-hero-role-line>Faço sites rápidos com design que converte.</span>
+          </p>
+
+          <div class="hero__actions">
+            <a
+              class="hero__cta hero__cta--primary"
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-hero-cta
+            >
+              <svg class="hero__cta-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.435 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+              </svg>
+              Chamar no WhatsApp
+              <span class="hero__cta-arrow" aria-hidden="true">↗</span>
+            </a>
+            <a class="hero__cta hero__cta--ghost" href="#trabalhos">
+              <svg class="hero__cta-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+              Ver trabalhos
+            </a>
+          </div>
+        </div>
+
+        <div class="hero__intro" aria-live="polite" aria-atomic="true">
+          <span
+            class="hero__progress"
+            data-hero-progress
+            role="progressbar"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+            aria-label="Progresso da aproximação da cena"
+          >
+            <span class="hero__progress-fill" data-hero-progress-fill></span>
+          </span>
+          <p class="hero__scroll" data-hero-hint>
+            <span data-hero-hint-text>Role para aproximar</span>
+            <span class="sr-only"> — a cena se aproxima conforme você rola a página</span>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <script>
+      import { initHeroScroll } from '../scripts/heroScroll';
+
+      const hero = document.getElementById('hero');
+      if (hero) {
+        const destroyHeroScroll = initHeroScroll(hero);
+        document.addEventListener('astro:before-swap', () => destroyHeroScroll(), { once: true });
+      }
+    </script>
+
+    <section id="trabalhos" class="projects container" aria-labelledby="projects-heading" data-jellyfish-section="trabalhos">
+      <div class="projects__intro reveal reveal--pending">
+        <h2 id="projects-heading">Trabalhos selecionados</h2>
+        <p>Sites que entregamos com performance, craft visual e foco em resultado.</p>
+      </div>
+
+      <ol class="project-list">
+        {
+          projects.map((project) => (
+            <li class="project reveal reveal--pending">
+              <a
+                class="project__link"
+                href={project.url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <span class="project__index">{project.index}</span>
+                <div class="project__body">
+                  <span class="project__tag">{project.tag}</span>
+                  <h3>{project.name}</h3>
+                  <p class="project__desc">{project.description}</p>
+                </div>
+                <span class="project__arrow" aria-hidden="true">
+                  ↗
+                </span>
+                <span class="sr-only">Abrir {project.name} em nova aba</span>
+              </a>
+            </li>
+          ))
+        }
+      </ol>
+    </section>
+
+    <section id="sobre" class="about" aria-labelledby="about-heading" data-jellyfish-section="sobre">
+      <div class="container">
+        <div class="about__grid reveal reveal--pending">
+          <div>
+            <p class="about__label">Sobre</p>
+            <h2 id="about-heading" class="about__name">
+              André<br />Mendes
+            </h2>
+          </div>
+          <p class="about__statement">
+            Criamos sites de alta performance com design — do conceito ao deploy, com atenção a cada detalhe que o
+            visitante sente.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section id="contato" class="contact" aria-labelledby="contact-heading" data-jellyfish-section="contato">
+      <div class="container">
+        <div class="contact__inner reveal reveal--pending">
+          <div>
+            <h2 id="contact-heading" class="contact__title">
+              Vamos fazer<br />algo bom.
+            </h2>
+            <p class="contact__sub">Me chama no WhatsApp — respondo rápido.</p>
+          </div>
+          <a class="contact__wa" href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+            (14) 99604-0987
+            <span aria-hidden="true">↗</span>
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>© {new Date().getFullYear()} André Mendes</p>
+    </div>
+  </footer>
+</Layout>

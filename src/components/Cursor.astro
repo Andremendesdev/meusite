@@ -1,0 +1,56 @@
+---
+/** Trailing cursor — dot 1:1 + ring com spring. Só desktop / pointer fino. */
+---
+
+<div class="custom-cursor__dot" id="cursor-dot" aria-hidden="true"></div>
+<div class="custom-cursor__ring" id="cursor-ring" aria-hidden="true" data-active="false"></div>
+
+<script>
+  const fine = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  if (!fine) {
+    // touch / coarse pointer — native cursor
+  } else {
+    const dot = document.getElementById('cursor-dot');
+    const ring = document.getElementById('cursor-ring');
+    if (!dot || !ring) throw new Error('cursor: elements missing');
+
+    document.documentElement.classList.add('has-custom-cursor');
+
+    let mouseX = window.innerWidth / 2;
+    let mouseY = window.innerHeight / 2;
+    let ringX = mouseX;
+    let ringY = mouseY;
+    let raf = 0;
+
+    const onMove = (e: MouseEvent) => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+      dot.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0) translate(-50%, -50%)`;
+    };
+
+    const onOver = (e: MouseEvent) => {
+      const el = e.target as HTMLElement;
+      const isInteractive = !!el.closest?.('a, button, [data-cursor="hover"], input, textarea');
+      ring.dataset.active = isInteractive ? 'true' : 'false';
+    };
+
+    const loop = () => {
+      ringX += (mouseX - ringX) * 0.16;
+      ringY += (mouseY - ringY) * 0.16;
+      ring.style.transform = `translate3d(${ringX}px, ${ringY}px, 0) translate(-50%, -50%)`;
+      raf = requestAnimationFrame(loop);
+    };
+
+    dot.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0) translate(-50%, -50%)`;
+    ring.style.transform = `translate3d(${ringX}px, ${ringY}px, 0) translate(-50%, -50%)`;
+
+    window.addEventListener('mousemove', onMove, { passive: true });
+    window.addEventListener('mouseover', onOver, { passive: true });
+    raf = requestAnimationFrame(loop);
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) cancelAnimationFrame(raf);
+      else raf = requestAnimationFrame(loop);
+    });
+  }
+</script>

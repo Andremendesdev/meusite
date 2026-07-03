@@ -1,0 +1,77 @@
+---
+import Background from '../components/Background.astro';
+import JellyfishScene from '../components/JellyfishScene.astro';
+import Cursor from '../components/Cursor.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = 'André Mendes — desenvolvedor',
+  description = 'André Mendes, desenvolvedor. Faço sites rápidos com design que converte.',
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&display=swap"
+      rel="stylesheet"
+    />
+    <title>{title}</title>
+  </head>
+  <body>
+    <noscript>
+      <style>
+        .jellyfish-canvas { display: none !important; }
+        .hero-ambient { opacity: 1 !important; }
+        .hero { min-height: 100dvh !important; }
+        .hero__progress,
+        .hero__skip { display: none !important; }
+      </style>
+    </noscript>
+    <Background />
+    <div class="hero-shade" aria-hidden="true"></div>
+    <div class="hero-ambient" aria-hidden="true"></div>
+    <JellyfishScene />
+    <Cursor />
+    <div class="site-content">
+      <slot />
+    </div>
+    <script>
+      const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (!prefersReduced) {
+        const reveals = document.querySelectorAll('.reveal--pending');
+        const observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                entry.target.classList.add('reveal--visible');
+                observer.unobserve(entry.target);
+              }
+            });
+          },
+          { threshold: 0.15, rootMargin: '0px 0px -8% 0px' }
+        );
+        reveals.forEach((el) => observer.observe(el));
+      } else {
+        document.querySelectorAll('.reveal--pending').forEach((el) => {
+          el.classList.add('reveal--visible');
+        });
+      }
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  @import '../styles/global.css';
+</style>

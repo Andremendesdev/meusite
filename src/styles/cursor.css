@@ -1,0 +1,62 @@
+/* Custom cursor — neon moss dot + lagging ring */
+
+html.has-custom-cursor,
+html.has-custom-cursor * {
+  cursor: none !important;
+}
+
+.custom-cursor__dot,
+.custom-cursor__ring {
+  display: none;
+  pointer-events: none;
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 250;
+  will-change: transform;
+}
+
+@media (hover: hover) and (pointer: fine) and (min-width: 48rem) {
+  .custom-cursor__dot,
+  .custom-cursor__ring {
+    display: block;
+  }
+}
+
+.custom-cursor__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: oklch(0.62 0.22 160);
+}
+
+.custom-cursor__ring {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid oklch(0.93 0 0 / 0.4);
+  transition:
+    width 300ms cubic-bezier(0.16, 1, 0.3, 1),
+    height 300ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 300ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.custom-cursor__ring[data-active='true'] {
+  width: 64px;
+  height: 64px;
+  border-color: oklch(0.58 0.24 160 / 0.8);
+  background: oklch(0.58 0.24 160 / 0.1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.has-custom-cursor,
+  html.has-custom-cursor * {
+    cursor: auto !important;
+  }
+
+  .custom-cursor__dot,
+  .custom-cursor__ring {
+    display: none !important;
+  }
+}
