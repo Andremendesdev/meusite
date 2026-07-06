@@ -149,6 +149,7 @@ export function initJellyfishScene(canvas: HTMLCanvasElement): () => void {
       scrollProgress: 0,
       heroIntroProgress: 1,
       trabalhosLayoutProgress: 0,
+      sobreLayoutProgress: 0,
       mouseTarget: null,
       mouseSpeed: 0,
       nearCTA: false,
@@ -156,6 +157,7 @@ export function initJellyfishScene(canvas: HTMLCanvasElement): () => void {
       particleGlow: 0,
       contatoPresence: 0,
       trabalhosPresence: 0,
+      sobrePresence: 0,
     });
     particles.update(0, 0, state, jellyfish.getCenter(centerScratch), null, 0);
     water.update(0, state, 0, 0);
@@ -234,6 +236,7 @@ export function initJellyfishScene(canvas: HTMLCanvasElement): () => void {
       scrollProgress: scrollController!.getScrollProgress(),
       heroIntroProgress: scrollController!.getHeroIntroProgress(),
       trabalhosLayoutProgress: scrollController!.getTrabalhosLayoutProgress(),
+      sobreLayoutProgress: scrollController!.getSobreLayoutProgress(),
       mouseTarget,
       mouseSpeed,
       nearCTA,
@@ -241,6 +244,7 @@ export function initJellyfishScene(canvas: HTMLCanvasElement): () => void {
       particleGlow: 0,
       contatoPresence: scrollController!.getSectionWeight('contato'),
       trabalhosPresence: scrollController!.getSectionWeight('trabalhos'),
+      sobrePresence: scrollController!.getSectionWeight('sobre'),
     });
     water.update(time, state, scrollController!.getScrollVelocity(), scrollController!.getScrollProgress());
     bubbles.update(dt, time, state, camera, scrollController!.getScrollProgress(), bubbleMouse);
@@ -249,11 +253,13 @@ export function initJellyfishScene(canvas: HTMLCanvasElement): () => void {
 
     const heroWeight = scrollController!.getSectionWeight('hero');
     const trabalhosT = scrollController!.getTrabalhosLayoutProgress();
-    const oceanPulse = transitionOceanPulse(trabalhosT);
-    const heroDark = (1 - trabalhosT) * Math.max(heroWeight, 1 - trabalhosT * 0.65);
+    const sobreT = scrollController!.getSobreLayoutProgress();
+    const passT = Math.max(trabalhosT, sobreT);
+    const oceanPulse = transitionOceanPulse(passT);
+    const heroDark = (1 - passT) * Math.max(heroWeight, 1 - passT * 0.65);
     const oceanDepth = Math.min(1, state.waterDepth + scrollController!.getScrollProgress() * 0.42);
     const intro = scrollController!.getHeroIntroProgress();
-    key.color.set('#b06cc8').lerp(keyMoss, intro * 0.4 * (1 - trabalhosT * 0.85));
+    key.color.set('#b06cc8').lerp(keyMoss, intro * 0.4 * (1 - passT * 0.85));
     key.color.lerp(keyOcean, oceanPulse * 0.72);
     key.intensity = 0.42 + state.ambientIntensity * 0.24 - oceanDepth * 0.07 - heroDark * 0.04 + oceanPulse * 0.16;
     ambient.intensity = 0.36 + state.ambientIntensity * 0.28 - oceanDepth * 0.12 - heroDark * 0.05 + oceanPulse * 0.08;

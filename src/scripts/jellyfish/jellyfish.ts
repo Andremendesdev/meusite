@@ -8,6 +8,7 @@ import {
 import { createTentacleMaterial } from './tentacleMaterial';
 import { HeadParticleHalo } from './headParticles';
 import { transitionOceanPulse } from './oceanPulse';
+import { getSobrePassHold, getContatoExitProgress } from '../trabalhosPass';
 import type { JellyfishState } from './states';
 
 const SWIM_RANGE = 3.4;
@@ -28,10 +29,24 @@ const WALK_LEFT_AMOUNT = 2.4;
 const WALK_LEFT_DESKTOP = 1.4;
 const TRABALHOS_PASS_ZOOM_SCALE = 0.3;
 const TRABALHOS_PASS_ZOOM_Z = 1.15;
+/** Extra à esquerda enquanto permanece na seção sobre. */
+const SOBRE_EXTRA_LEFT = 1.1;
+/** Correção à direita na seção sobre (equilibra o deslocamento à esquerda). */
+const SOBRE_NUDGE_RIGHT = 0.95;
+const SOBRE_NUDGE_RIGHT_DESKTOP = 0.65;
+/** Pose na seção sobre — bem mais baixa. */
+const SOBRE_SECTION_Y_DROP = 2.35;
+const SOBRE_SECTION_Y_DROP_DESKTOP = 1.05;
 /** Pose na seção trabalhos — mais baixa e um pouco menor. */
 const TRABALHOS_SECTION_Y_DROP = 1.35;
 const TRABALHOS_SECTION_Y_DROP_DESKTOP = 0.55;
 const TRABALHOS_SECTION_SCALE = 0.74;
+/** Na seção contato: empurra para fora à esquerda e afasta da câmera. */
+const CONTATO_EXIT_LEFT = 5.5;
+const CONTATO_EXIT_LEFT_DESKTOP = 3.2;
+const CONTATO_RETREAT_Z = 2.4;
+const CONTATO_EXIT_Y_DROP = 1.45;
+const CONTATO_EXIT_Y_DROP_DESKTOP = 0.75;
 const TENTACLE_ATTACH_HEIGHT = 0.18;
 const TENTACLE_ATTACH_RADIUS_SCALE = 0.86;
 const GAZE_MAX = 0.32;
@@ -55,6 +70,8 @@ export interface JellyfishUpdateContext {
   heroIntroProgress: number;
   /** 0..1 progresso scroll-driven na passagem hero→trabalhos (esquerda + zoom no meio). */
   trabalhosLayoutProgress: number;
+  /** 0..1 progresso scroll-driven na passagem trabalhos→sobre (mesmo ritual). */
+  sobreLayoutProgress: number;
   mouseTarget: THREE.Vector3 | null;
   /** Velocidade do cursor em unidades de mundo por segundo. */
   mouseSpeed: number;
@@ -67,6 +84,8 @@ export interface JellyfishUpdateContext {
   contatoPresence: number;
   /** 0..1 peso da seção trabalhos no blend de scroll. */
   trabalhosPresence: number;
+  /** 0..1 peso da seção sobre no blend de scroll. */
+  sobrePresence: number;
 }
 
 interface GlowLayer {
@@ -131,6 +150,8 @@ export class Jellyfish {
   private selfRotation = 0;
   private approachZ = 0;
   private trabalhosLayoutSmoothed = 0;
+  private sobreLayoutSmoothed = 0;
+  private contatoExitSmoothed = 0;
   private heroRiseProgress = 0;
   private displayColor = new THREE.Color('#e879f9');
   private readonly hotFuchsia = new THREE.Color('#f0abfc');
@@ -280,8 +301,14 @@ export class Jellyfish {
 
     this.displayColor.lerp(state.bellColor, Math.min(1, dt * 2.2));
 
-    const oceanShift = transitionOceanPulse(ctx.trabalhosLayoutProgress);
-    const ctaPresence = ctx.contatoPresence;
+    const passProgress = Math.max(ctx.trabalhosLayoutProgress, ctx.sobreLayoutProgress);
+    const oceanShift = transitionOceanPulse(passProgress);
+    this.contatoExitSmoothed = THREE.MathUtils.lerp(
+      this.contatoExitSmoothed,
+      getContatoExitProgress(),
+      Math.min(1, dt * 6)
+    );
+    const ctaPresence = this.contatoExitSmoothed;
     const glowDrive = THREE.MathUtils.smoothstep(state.emissiveIntensity, 0.58, 1.05);
     if (oceanShift > 0.001) {
       this.displayColor.lerp(this.oceanCyan, oceanShift * 0.82);
@@ -294,7 +321,7 @@ export class Jellyfish {
     }
 
     const heroPresence =
-      (1 - ctx.trabalhosLayoutProgress) * THREE.MathUtils.smoothstep(ctx.heroIntroProgress, 0.25, 0.95);
+      (1 - passProgress) * THREE.MathUtils.smoothstep(ctx.heroIntroProgress, 0.25, 0.95);
     if (heroPresence > 0.001) {
       this.displayColor.lerp(this.mossBell, heroPresence * 0.38 * (1 - oceanShift * 0.85));
     }
@@ -419,12 +446,27 @@ export class Jellyfish {
     this.headParticles.update(dt, time, mouseLocal, ctx.mouseSpeed, heroPresence + this.heroCtaAmount * 0.35, oceanShift);
 
     const anchorWorld = new THREE.Vector3();
+    const sobreAggro = THREE.MathUtils.clamp(
+      Math.max(ctx.sobrePresence * 1.05, ctx.sobreLayoutProgress * 0.45),
+      0,
+      1
+    );
     for (let i = 0; i < this.tentacles.length; i++) {
       anchorWorld.copy(this.tentacleAnchors[i]);
       this.group.localToWorld(anchorWorld);
       const tentacle = this.tentacles[i];
-      const lengthMul = state.tentacleLength * (tentacle.looseness > 1 ? 1.12 : 1);
-      tentacle.update(dt, time, anchorWorld, lengthMul, state.tentacleDrag, ctx.scrollInfluence);
+      const loosenessMul = tentacle.looseness > 1 ? 1.12 : 1;
+      const lengthMul = state.tentacleLength * loosenessMul * (1 + sobreAggro * 0.32);
+      const drag = THREE.MathUtils.lerp(state.tentacleDrag, Math.max(0.42, state.tentacleDrag - 0.24), sobreAggro);
+      tentacle.update(
+        dt,
+        time,
+        anchorWorld,
+        lengthMul,
+        drag,
+        ctx.scrollInfluence,
+        sobreAggro
+      );
     }
   }
 
@@ -540,9 +582,18 @@ export class Jellyfish {
       ctx.trabalhosLayoutProgress,
       Math.min(1, dt * 6.5)
     );
-    const trabalhos = this.trabalhosLayoutSmoothed;
-    const passCurve = Math.sin(trabalhos * Math.PI);
-    const sectionBlend = ctx.trabalhosPresence * (1 - passCurve * 0.85);
+    this.sobreLayoutSmoothed = THREE.MathUtils.lerp(
+      this.sobreLayoutSmoothed,
+      ctx.sobreLayoutProgress,
+      Math.min(1, dt * 6.5)
+    );
+    const heroPass = this.trabalhosLayoutSmoothed;
+    const sobrePass = this.sobreLayoutSmoothed;
+    const heroPassWalk = Math.sin(heroPass * Math.PI);
+    const sobreLeftHold = Math.max(getSobrePassHold(sobrePass), ctx.sobrePresence * 0.95);
+    const passWalkX = Math.max(heroPassWalk, sobreLeftHold);
+    const passZoomCurve = Math.max(heroPassWalk, Math.sin(sobrePass * Math.PI));
+    const sectionBlend = ctx.trabalhosPresence * (1 - passWalkX * 0.85);
     const heroScale = THREE.MathUtils.lerp(HERO_INTRO_SCALE_BOTTOM, HERO_INTRO_SCALE_TOP, introEase);
     const heroZ = THREE.MathUtils.lerp(HERO_INTRO_Z_START, 0, introEase);
     const heroAlign = THREE.MathUtils.lerp(0.4, 1, THREE.MathUtils.smoothstep(intro, 0.15, 0.9));
@@ -551,23 +602,46 @@ export class Jellyfish {
     const heroX = HERO_X_OFFSET + (isDesktop ? HERO_X_DESKTOP_EXTRA : 0);
     const heroY = HERO_Y_OFFSET + (isDesktop ? HERO_Y_DESKTOP_EXTRA : 0);
     const walkLeft = WALK_LEFT_AMOUNT + (isDesktop ? WALK_LEFT_DESKTOP : 0);
-    const heroIntroWalk = Math.sin(introEase * Math.PI) * (1 - trabalhos);
-    const baseHeroX = curve + heroX * heroAlign;
-    const posX = baseHeroX - walkLeft * (heroIntroWalk + passCurve);
+    const heroIntroWalk = Math.sin(introEase * Math.PI) * (1 - heroPass);
+    const heroAlignForX = heroAlign * (1 - sobreLeftHold * 0.88);
+    const baseHeroX = curve + heroX * heroAlignForX;
+    const sobreNudgeRight = SOBRE_NUDGE_RIGHT + (isDesktop ? SOBRE_NUDGE_RIGHT_DESKTOP : 0);
+    const sobreBlend = Math.max(sobreLeftHold, ctx.sobrePresence * 0.92);
+    const contatoBlend = this.contatoExitSmoothed;
+    const contatoExitLeft = CONTATO_EXIT_LEFT + (isDesktop ? CONTATO_EXIT_LEFT_DESKTOP : 0);
+    const posX =
+      baseHeroX -
+      walkLeft * (heroIntroWalk + passWalkX) -
+      sobreLeftHold * SOBRE_EXTRA_LEFT +
+      sobreBlend * sobreNudgeRight * (1 - contatoBlend) -
+      contatoBlend * contatoExitLeft;
     const trabalhosYDrop =
       TRABALHOS_SECTION_Y_DROP + (isDesktop ? TRABALHOS_SECTION_Y_DROP_DESKTOP : 0);
+    const sobreYDrop = SOBRE_SECTION_Y_DROP + (isDesktop ? SOBRE_SECTION_Y_DROP_DESKTOP : 0);
+    const contatoYDrop = CONTATO_EXIT_Y_DROP + (isDesktop ? CONTATO_EXIT_Y_DROP_DESKTOP : 0);
     const desktopYDrop = isDesktop ? HERO_Y_DESKTOP_DROP * heroAlign : 0;
     const posY =
-      swimY + heroY * heroAlign + heroIntroY - desktopYDrop - sectionBlend * trabalhosYDrop;
+      swimY +
+      heroY * heroAlign +
+      heroIntroY -
+      desktopYDrop -
+      sectionBlend * trabalhosYDrop -
+      sobreBlend * sobreYDrop -
+      contatoBlend * contatoYDrop;
     const trabalhosScaleMul = THREE.MathUtils.lerp(1, TRABALHOS_SECTION_SCALE, sectionBlend);
-    const passZoomScale = 1 + passCurve * TRABALHOS_PASS_ZOOM_SCALE;
-    const passZoomZ = passCurve * TRABALHOS_PASS_ZOOM_Z;
+    const passZoomScale = 1 + passZoomCurve * TRABALHOS_PASS_ZOOM_SCALE;
+    const passZoomZ = passZoomCurve * TRABALHOS_PASS_ZOOM_Z;
 
-    const approachTarget =
-      ctx.nearCTA || ctx.nearHeroCta ? 1 : Math.min(0.72, ctx.contatoPresence * 0.95);
+    const approachTarget = ctx.nearHeroCta ? 1 : 0;
+
     this.approachZ = THREE.MathUtils.lerp(this.approachZ, approachTarget, Math.min(1, dt * (ctx.nearHeroCta ? 3.2 : 2)));
 
-    this.group.position.set(posX, posY, heroZ + passZoomZ + this.approachZ * 1.1);
+    const contatoRetreatZ = contatoBlend * CONTATO_RETREAT_Z;
+    this.group.position.set(
+      posX,
+      posY,
+      heroZ + passZoomZ + this.approachZ * 1.1 - contatoRetreatZ
+    );
 
     this.selfRotation += dt * state.rotationSpeed;
 
@@ -585,8 +659,13 @@ export class Jellyfish {
     this.currentGazeYaw = THREE.MathUtils.lerp(this.currentGazeYaw, targetYaw, 1 - Math.pow(0.001, dt));
     this.currentGazePitch = THREE.MathUtils.lerp(this.currentGazePitch, targetPitch, 1 - Math.pow(0.001, dt));
 
+    const contatoScaleMul = 1 - contatoBlend * 0.42;
     const scale =
-      heroScale * passZoomScale * trabalhosScaleMul * (1 + this.approachZ * (0.08 + ctx.contatoPresence * 0.06));
+      heroScale *
+      passZoomScale *
+      trabalhosScaleMul *
+      contatoScaleMul *
+      (1 + this.approachZ * 0.08);
     this.group.scale.setScalar(scale);
     this.group.rotation.set(
       this.currentGazePitch,

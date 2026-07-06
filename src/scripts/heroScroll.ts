@@ -1,7 +1,8 @@
 import {
   getHeroIntroProgress,
   getTrabalhosLayoutProgress,
-  getTrabalhosPassCurve,
+  getSobreLayoutProgress,
+  getCombinedPassCurve,
   updatePassIsolation,
   clearPassIsolation,
 } from './trabalhosPass';
@@ -106,7 +107,8 @@ export function initHeroScroll(hero: HTMLElement): () => void {
   function tick() {
     const t = getHeroIntroProgress(hero);
     const passProgress = getTrabalhosLayoutProgress(t);
-    const passCurve = getTrabalhosPassCurve(passProgress);
+    const sobrePass = getSobreLayoutProgress();
+    const passCurve = getCombinedPassCurve(passProgress, sobrePass);
 
     updatePassIsolation(passCurve);
     updateHeroShade(hero, passCurve);

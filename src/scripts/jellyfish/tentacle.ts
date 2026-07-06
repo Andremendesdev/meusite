@@ -123,11 +123,13 @@ export class Tentacle {
     anchorWorld: THREE.Vector3,
     lengthMultiplier: number,
     dragFactor: number,
-    scrollInfluence = 0
+    scrollInfluence = 0,
+    aggression = 0
   ) {
     const segmentLength = this.baseSegmentLength * lengthMultiplier;
     const loosenessBoost = this.looseness - 1;
     const scrollAbs = Math.abs(scrollInfluence);
+    const aggro = THREE.MathUtils.clamp(aggression, 0, 1);
 
     this.points[0].copy(anchorWorld);
     this.prevPoints[0].copy(anchorWorld);
@@ -139,13 +141,18 @@ export class Tentacle {
       return;
     }
 
-    const effectiveDrag = Math.min(1, dragFactor + loosenessBoost * 0.42 + scrollAbs * 0.18);
-    const damping = 0.86 + effectiveDrag * 0.09 - loosenessBoost * 0.04 - scrollAbs * 0.06;
-    const waveStrength = 0.76 + effectiveDrag * 0.68 + loosenessBoost * 0.5 + scrollAbs * 0.45;
-    const waveFreq = 0.68 + loosenessBoost * 0.38;
-    const segmentWave = 0.58 + loosenessBoost * 0.34;
-    const waveScale = (1.22 + loosenessBoost * 1.0) * (1 + scrollAbs * 0.38);
-    const maxVel = MAX_SEGMENT_VELOCITY * (1 + loosenessBoost * 0.2);
+    const effectiveDrag = Math.min(
+      1,
+      dragFactor + loosenessBoost * 0.42 + scrollAbs * 0.18 - aggro * 0.14
+    );
+    const damping =
+      0.86 + effectiveDrag * 0.09 - loosenessBoost * 0.04 - scrollAbs * 0.06 - aggro * 0.06;
+    const waveStrength =
+      0.76 + effectiveDrag * 0.68 + loosenessBoost * 0.5 + scrollAbs * 0.45 + aggro * 1.15;
+    const waveFreq = 0.68 + loosenessBoost * 0.38 + aggro * 0.92;
+    const segmentWave = 0.58 + loosenessBoost * 0.34 + aggro * 0.22;
+    const waveScale = (1.22 + loosenessBoost * 1.0) * (1 + scrollAbs * 0.38 + aggro * 0.95);
+    const maxVel = MAX_SEGMENT_VELOCITY * (1 + loosenessBoost * 0.2 + aggro * 0.55);
 
     for (let i = 1; i < this.points.length; i++) {
       const point = this.points[i];
@@ -180,6 +187,10 @@ export class Tentacle {
       const travelPhase = time * waveFreq - i * segmentWave + this.phase;
       const undulateX = Math.sin(travelPhase) * waveAmp;
       const undulateZ = Math.cos(travelPhase * 1.08 + 0.5) * waveAmp * (0.82 + loosenessBoost * 0.2);
+      const undulateY =
+        Math.sin(travelPhase * 0.94 + depthFactor * 2.4) *
+        waveAmp *
+        (0.28 + loosenessBoost * 0.12 + aggro * 0.62);
       const ripple =
         Math.sin(time * (0.38 + loosenessBoost * 0.3) + segPhase + depthFactor * 2.2) *
         waveAmp *
@@ -188,7 +199,7 @@ export class Tentacle {
       const rippleMixZ = 0.58 + loosenessBoost * 0.26;
 
       point.x += velX + undulateX + ripple * rippleMixX + scrollCurrentX;
-      point.y += velY - gravity + buoyancy - scrollCurrentY;
+      point.y += velY - gravity + buoyancy - scrollCurrentY + undulateY;
       point.z += velZ + undulateZ + ripple * rippleMixZ + scrollCurrentZ;
 
       if (loosenessBoost > 0) {
@@ -196,6 +207,17 @@ export class Tentacle {
         const secondaryAmp = waveAmp * 0.62;
         point.x += Math.sin(secondaryPhase) * secondaryAmp;
         point.z += Math.cos(secondaryPhase * 1.08 + 0.35) * secondaryAmp * 0.86;
+      }
+
+      if (aggro > 0.02) {
+        const chaosAmp = waveAmp * aggro * 1.35;
+        const chaosT = time * (1.15 + aggro * 0.65) + segPhase + depthFactor * 3.1;
+        point.x += Math.sin(chaosT * 1.31) * chaosAmp + Math.cos(chaosT * 0.77 + i * 0.4) * chaosAmp * 0.58;
+        point.y +=
+          Math.sin(chaosT * 0.89 + this.phase) * chaosAmp * 0.72 +
+          Math.cos(chaosT * 1.12 - depthFactor * 2.8) * chaosAmp * 0.48;
+        point.z +=
+          Math.cos(chaosT * 1.19 + 0.6) * chaosAmp + Math.sin(chaosT * 0.93 - i * 0.35) * chaosAmp * 0.62;
       }
     }
 
@@ -226,7 +248,7 @@ export class Tentacle {
     for (let i = 1; i < this.points.length; i++) {
       const point = this.points[i];
       const parent = this.points[i - 1];
-      const maxY = parent.y + segmentLength * (0.05 + loosenessBoost * 0.1);
+      const maxY = parent.y + segmentLength * (0.05 + loosenessBoost * 0.1 + aggro * 0.14);
       if (point.y > maxY) {
         point.y = THREE.MathUtils.lerp(point.y, maxY, Math.max(0.05, 0.06 - loosenessBoost * 0.025));
       }

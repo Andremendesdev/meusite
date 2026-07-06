@@ -1,5 +1,5 @@
 import { blendStates, SECTION_KEYS, type JellyfishState, type SectionKey } from './states';
-import { getTrabalhosLayoutProgress } from '../trabalhosPass';
+import { getTrabalhosLayoutProgress, getSobreLayoutProgress } from '../trabalhosPass';
 
 interface TrackedSection {
   key: SectionKey;
@@ -23,6 +23,8 @@ export class ScrollController {
   private smoothedVelocity = 0;
   private trabalhosLayoutTarget = 0;
   private trabalhosLayoutSmoothed = 0;
+  private sobreLayoutTarget = 0;
+  private sobreLayoutSmoothed = 0;
   private lastScrollY = window.scrollY;
   private onScroll = () => this.recompute();
   private onResize = () => this.recompute();
@@ -85,6 +87,10 @@ export class ScrollController {
     this.trabalhosLayoutTarget = this.computeTrabalhosLayoutProgress();
     this.trabalhosLayoutSmoothed +=
       (this.trabalhosLayoutTarget - this.trabalhosLayoutSmoothed) * Math.min(1, dt * 6);
+
+    this.sobreLayoutTarget = getSobreLayoutProgress();
+    this.sobreLayoutSmoothed +=
+      (this.sobreLayoutTarget - this.sobreLayoutSmoothed) * Math.min(1, dt * 6);
   }
 
   getBlendedState(): JellyfishState {
@@ -121,6 +127,13 @@ export class ScrollController {
    */
   getTrabalhosLayoutProgress(): number {
     return this.trabalhosLayoutSmoothed;
+  }
+
+  /**
+   * 0 → 1 passagem trabalhos→sobre: mesmo ritual (esquerda + zoom; conteúdo some no pico).
+   */
+  getSobreLayoutProgress(): number {
+    return this.sobreLayoutSmoothed;
   }
 
   private computeTrabalhosLayoutProgress(): number {
