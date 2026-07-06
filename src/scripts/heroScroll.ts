@@ -1,14 +1,12 @@
-/** Progresso 0→1 do ritual de scroll dentro da hero (água-viva se aproxima). */
-export function getHeroIntroProgress(hero: HTMLElement): number {
-  const viewportH = window.innerHeight;
-  const scrollable = Math.max(0, hero.offsetHeight - viewportH);
-  if (scrollable <= 0) return 1;
+import {
+  getHeroIntroProgress,
+  getTrabalhosLayoutProgress,
+  getTrabalhosPassCurve,
+  updatePassIsolation,
+  clearPassIsolation,
+} from './trabalhosPass';
 
-  const scrolled = Math.min(scrollable, Math.max(0, -hero.getBoundingClientRect().top));
-  const t = scrolled / scrollable;
-  const c = Math.min(1, Math.max(0, t));
-  return c * c * (3 - 2 * c);
-}
+export { getHeroIntroProgress };
 
 const ROLE_IDLE = 'Faço sites rápidos com design que converte.';
 const ROLE_APPROACH = 'Sites vivos — performance, craft e resultado.';
@@ -31,12 +29,10 @@ function applyStaticHero(hero: HTMLElement) {
   hero.dataset.scene = 'static';
 
   const progress = hero.querySelector<HTMLElement>('[data-hero-progress]');
-  const skip = hero.querySelector<HTMLAnchorElement>('[data-hero-skip]');
   const hint = hero.querySelector<HTMLElement>('[data-hero-hint]');
   const shade = document.querySelector<HTMLElement>('.hero-shade');
 
   if (progress) progress.hidden = true;
-  if (skip) skip.hidden = true;
   if (shade) shade.style.opacity = '1';
   if (hint) {
     const hintText = hint.querySelector<HTMLElement>('[data-hero-hint-text]');
@@ -45,7 +41,7 @@ function applyStaticHero(hero: HTMLElement) {
   }
 }
 
-function updateHeroShade(hero: HTMLElement) {
+function updateHeroShade(hero: HTMLElement, passCurve = 0) {
   const shade = document.querySelector<HTMLElement>('.hero-shade');
   const ambient = document.querySelector<HTMLElement>('.hero-ambient');
   if (!shade && !ambient) return;
@@ -55,7 +51,8 @@ function updateHeroShade(hero: HTMLElement) {
   const fadeStart = viewportH * 1.1;
   const fadeEnd = viewportH * 0.35;
   const t = (fadeStart - bottom) / (fadeStart - fadeEnd);
-  const opacity = Math.min(1, Math.max(0, t));
+  const scrollFade = Math.min(1, Math.max(0, t));
+  const opacity = Math.max(scrollFade, passCurve * 0.98);
 
   if (shade) shade.style.opacity = String(opacity);
   if (ambient && document.documentElement.classList.contains('no-webgl')) {
@@ -89,7 +86,6 @@ export function initHeroScroll(hero: HTMLElement): () => void {
   const hintText = hero.querySelector<HTMLElement>('[data-hero-hint-text]');
   const progress = hero.querySelector<HTMLElement>('[data-hero-progress]');
   const progressFill = hero.querySelector<HTMLElement>('[data-hero-progress-fill]');
-  const skip = hero.querySelector<HTMLAnchorElement>('[data-hero-skip]');
 
   let rafId = 0;
   let lastRole = '';
@@ -109,9 +105,13 @@ export function initHeroScroll(hero: HTMLElement): () => void {
 
   function tick() {
     const t = getHeroIntroProgress(hero);
-    const pct = Math.round(t * 100);
+    const passProgress = getTrabalhosLayoutProgress(t);
+    const passCurve = getTrabalhosPassCurve(passProgress);
 
-    updateHeroShade(hero);
+    updatePassIsolation(passCurve);
+    updateHeroShade(hero, passCurve);
+
+    const pct = Math.round(t * 100);
 
     if (progress) {
       progress.setAttribute('aria-valuenow', String(pct));
@@ -141,10 +141,6 @@ export function initHeroScroll(hero: HTMLElement): () => void {
       lastHint = hintLabel;
     }
 
-    if (skip) {
-      skip.hidden = t > 0.92;
-    }
-
     if (hint) {
       hint.style.opacity = t > 0.95 ? '0' : '1';
     }
@@ -172,5 +168,6 @@ export function initHeroScroll(hero: HTMLElement): () => void {
     window.removeEventListener('scroll', onScroll);
     window.removeEventListener('resize', onScroll);
     document.removeEventListener('jellyfish:unavailable', onSceneUnavailable);
+    clearPassIsolation();
   };
 }

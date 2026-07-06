@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { GALAXY_GLSL } from './galaxy.glsl';
 
 const NEON = '#c994e8';
 const NEON_HOT = '#f0abfc';
@@ -22,6 +23,8 @@ const BELL_VERTEX = /* glsl */ `
 `;
 
 const BELL_FRAGMENT = /* glsl */ `
+${GALAXY_GLSL}
+
   uniform vec3 uColor;
   uniform vec3 uCoreColor;
   uniform vec3 uNeonColor;
@@ -102,12 +105,19 @@ const BELL_FRAGMENT = /* glsl */ `
 
     vec3 reflections = specular + vec3(domeGlint + ribGlint) + whiteRim + wetSheen;
 
+    float galaxyIntensity = 1.1 + uEmissive * 1.2 + uOrbGlow * 0.35;
+    vec3 galaxy = galaxyBellSparkle(vLocalPos, uTime, galaxyIntensity);
+    galaxy *= 0.75 + fresnel * 0.35;
+
     vec3 finalColor = fill + body + highlight + rim + innerGlow + ribColor + reflections;
+    finalColor *= 0.55;
+    finalColor += galaxy * 1.6;
 
     float alpha = clamp(
       0.14 + fresnel * uOpacity * 0.52 + edgeFresnel * 0.09 +
-      innerMask * 0.14 + ribStrength * 0.06 + specKey * 0.08,
-      0.13, 0.76
+      innerMask * 0.14 + ribStrength * 0.06 + specKey * 0.08 +
+      length(galaxy) * 0.12,
+      0.13, 0.82
     );
 
     gl_FragColor = vec4(finalColor, alpha);
@@ -128,12 +138,16 @@ const ORB_VERTEX = /* glsl */ `
 `;
 
 const ORB_CORE_FRAGMENT = /* glsl */ `
+${GALAXY_GLSL}
+
   uniform vec3 uCoreColor;
   uniform vec3 uNeonColor;
   uniform float uOrbRadius;
   uniform float uPulse;
   uniform float uEmissive;
+  uniform float uTime;
 
+  varying vec3 vLocalPos;
   varying float vDist;
 
   void main() {
@@ -148,6 +162,8 @@ const ORB_CORE_FRAGMENT = /* glsl */ `
     // White-hot center blending out to neon color
     vec3 coreHot = mix(uNeonColor, vec3(1.0, 0.88, 0.96), hot * 0.72);
     vec3 color = mix(coreHot, uCoreColor, soft * (1.0 - hot)) * (0.78 + hot * 1.1) * strength * pulse;
+    vec3 galaxy = galaxyBellSparkle(vLocalPos, uTime, 1.2 + uEmissive * 0.9) * hot;
+    color += galaxy * 1.4;
     float alpha = soft * (0.32 + hot * 0.52) * strength * pulse;
 
     gl_FragColor = vec4(color, alpha);
@@ -174,6 +190,8 @@ const BELL_CONTOUR_VERTEX = /* glsl */ `
 `;
 
 const BELL_CONTOUR_FRAGMENT = /* glsl */ `
+${GALAXY_GLSL}
+
   uniform vec3 uNeonColor;
   uniform float uPulse;
   uniform float uEmissive;
@@ -208,7 +226,8 @@ const BELL_CONTOUR_FRAGMENT = /* glsl */ `
 
     float theta = atan(vLocalPos.z, vLocalPos.x);
     float glint = pow(halo, 2.2) * (0.55 + 0.45 * sin(uTime * 2.4 + theta * 6.0));
-    vec3 shadow = mix(uNeonColor, vec3(1.0), glint * 0.42) * (0.28 + halo * 0.52);
+    vec3 galaxy = galaxyBellSparkle(vLocalPos, uTime, 0.9 + uEmissive * 0.85) * (0.5 + halo);
+    vec3 shadow = mix(uNeonColor, vec3(1.0), glint * 0.42) * (0.28 + halo * 0.52) + galaxy;
     gl_FragColor = vec4(shadow, alpha);
   }
 `;
@@ -245,6 +264,7 @@ function orbUniforms(orbCenterY: number, orbRadius: number) {
     uCoreColor: { value: new THREE.Color(NEON_HOT) },
     uPulse: { value: 0 },
     uEmissive: { value: 0.7 },
+    uTime: { value: 0 },
   };
 }
 
@@ -272,7 +292,7 @@ export function createBellShellMaterial(
     transparent: true,
     depthWrite: false,
     side: THREE.DoubleSide,
-    blending: THREE.NormalBlending,
+    blending: THREE.AdditiveBlending,
   });
 }
 

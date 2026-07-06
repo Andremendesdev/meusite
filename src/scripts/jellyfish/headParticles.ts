@@ -3,6 +3,8 @@ import * as THREE from 'three';
 const NEON_PURPLE = '#c026d3';
 const NEON_HOT = '#e879f9';
 const MOSS_GLOW = '#5fa872';
+const OCEAN_CYAN = '#22d3ee';
+const OCEAN_BLUE = '#38bdf8';
 
 function createNeonBubbleTexture(): THREE.CanvasTexture {
   const size = 96;
@@ -106,6 +108,8 @@ export class HeadParticleHalo {
   private readonly scaleAttr: THREE.BufferAttribute;
   private readonly hotColor = new THREE.Color(NEON_HOT);
   private readonly mossColor = new THREE.Color(MOSS_GLOW);
+  private readonly oceanColor = new THREE.Color(OCEAN_CYAN);
+  private readonly oceanHot = new THREE.Color(OCEAN_BLUE);
 
   constructor(
     count: number,
@@ -184,7 +188,8 @@ export class HeadParticleHalo {
     time: number,
     mouseLocal: THREE.Vector3 | null,
     _mouseSpeed: number,
-    mossBlend = 0
+    mossBlend = 0,
+    oceanBlend = 0
   ) {
     if (!Number.isFinite(dt) || dt <= 0) return;
 
@@ -267,13 +272,18 @@ export class HeadParticleHalo {
     this.scaleAttr.needsUpdate = true;
 
     const pulse = 0.97 + Math.sin(time * 2.6) * 0.03;
-    const blend = THREE.MathUtils.clamp(mossBlend, 0, 1);
+    const moss = THREE.MathUtils.clamp(mossBlend, 0, 1);
+    const ocean = THREE.MathUtils.clamp(oceanBlend, 0, 1);
     (this.material.uniforms.uColor.value as THREE.Color)
       .set(NEON_PURPLE)
-      .lerp(this.mossColor, blend * 0.55);
-    (this.material.uniforms.uHotColor.value as THREE.Color).copy(this.hotColor).lerp(this.mossColor, blend * 0.4);
-    this.material.uniforms.uOpacity.value = 0.7 + Math.sin(time * 2.2) * 0.04;
-    this.material.uniforms.uSize.value = 0.22 * pulse;
+      .lerp(this.mossColor, moss * 0.55 * (1 - ocean * 0.9))
+      .lerp(this.oceanColor, ocean * 0.88);
+    (this.material.uniforms.uHotColor.value as THREE.Color)
+      .copy(this.hotColor)
+      .lerp(this.mossColor, moss * 0.4 * (1 - ocean * 0.85))
+      .lerp(this.oceanHot, ocean * 0.82);
+    this.material.uniforms.uOpacity.value = 0.92 + Math.sin(time * 2.2) * 0.06;
+    this.material.uniforms.uSize.value = 0.28 * pulse;
   }
 
   dispose() {

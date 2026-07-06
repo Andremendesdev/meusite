@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { GALAXY_GLSL } from './galaxy.glsl';
 
 const TENTACLE_VERTEX = /* glsl */ `
   varying vec2 vUv;
@@ -15,6 +16,8 @@ const TENTACLE_VERTEX = /* glsl */ `
 `;
 
 const TENTACLE_FRAGMENT = /* glsl */ `
+${GALAXY_GLSL}
+
   uniform vec3 uColor;
   uniform vec3 uEmissive;
   uniform float uEmissiveIntensity;
@@ -44,9 +47,14 @@ const TENTACLE_FRAGMENT = /* glsl */ `
     float whiteSpec = pow(fresnel, 3.2) * streak * (0.22 + uEmissiveIntensity * 0.18);
     float tipGlint = pow(fresnel, 5.0) * tipFade * 0.16;
 
-    vec3 col = base + tint + vec3(1.0) * (whiteSpec + tipGlint);
+    float galaxyIntensity = 1.0 + uEmissiveIntensity * 1.4;
+    vec3 galaxy = galaxyTentacleSparkle(vUv, vWorldPos, uTime, galaxyIntensity);
+    galaxy *= 0.7 + fresnel * 0.45;
 
-    float alpha = uOpacity * rootAlpha * tipFade * (0.42 + fresnel * 0.52);
+    vec3 col = (base + tint) * 0.5 + vec3(1.0) * (whiteSpec + tipGlint) * 0.6;
+    col += galaxy * 1.5;
+
+    float alpha = uOpacity * rootAlpha * tipFade * (0.42 + fresnel * 0.52 + length(galaxy) * 0.08);
     if (alpha < 0.004) discard;
 
     gl_FragColor = vec4(col, alpha);
@@ -59,6 +67,7 @@ export function createTentacleMaterial(): THREE.ShaderMaterial {
     transparent: true,
     depthWrite: false,
     side: THREE.DoubleSide,
+    blending: THREE.AdditiveBlending,
     uniforms: {
       uColor: { value: new THREE.Color('#d855f7') },
       uEmissive: { value: new THREE.Color('#f0abfc') },

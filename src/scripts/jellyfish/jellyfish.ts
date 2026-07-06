@@ -7,22 +7,38 @@ import {
 } from './bellMaterial';
 import { createTentacleMaterial } from './tentacleMaterial';
 import { HeadParticleHalo } from './headParticles';
+import { transitionOceanPulse } from './oceanPulse';
 import type { JellyfishState } from './states';
 
 const SWIM_RANGE = 3.4;
-const HERO_LIFT = 0.85;
-const HERO_X_OFFSET = 3.9;
-const HERO_Y_OFFSET = 1.08;
-const HERO_X_DESKTOP_EXTRA = 4.7;
-const HERO_Y_DESKTOP_EXTRA = 1.22;
+const HERO_X_OFFSET = 1.7;
+const HERO_Y_OFFSET = 1.65;
+const HERO_X_DESKTOP_EXTRA = 2.0;
+const HERO_Y_DESKTOP_EXTRA = 1.75;
+/** Desktop: puxa a água-viva para baixo desde a hero. */
+const HERO_Y_DESKTOP_DROP = 1.65;
 const DESKTOP_MIN_WIDTH = 1024;
-const HERO_INTRO_SCALE_START = 0.7;
+const HERO_INTRO_SCALE_BOTTOM = 0.9;
+const HERO_INTRO_SCALE_TOP = 0.6;
 const HERO_INTRO_Z_START = -2.4;
-const TRABALHOS_X_OFFSET = 3.35;
+const HERO_INTRO_Y_START = -2.6;
+const HERO_ENTER_DURATION = 2.4;
+/** Deslocamento à esquerda nos rituais de scroll (hero intro e passagem hero→trabalhos). */
+const WALK_LEFT_AMOUNT = 2.4;
+const WALK_LEFT_DESKTOP = 1.4;
+const TRABALHOS_PASS_ZOOM_SCALE = 0.3;
+const TRABALHOS_PASS_ZOOM_Z = 1.15;
+/** Pose na seção trabalhos — mais baixa e um pouco menor. */
+const TRABALHOS_SECTION_Y_DROP = 1.35;
+const TRABALHOS_SECTION_Y_DROP_DESKTOP = 0.55;
+const TRABALHOS_SECTION_SCALE = 0.74;
 const TENTACLE_ATTACH_HEIGHT = 0.18;
 const TENTACLE_ATTACH_RADIUS_SCALE = 0.86;
 const GAZE_MAX = 0.32;
 const TILT_MAX = 0.52;
+/** Pose base — levemente de lado, voltada para o conteúdo. */
+const BASE_POSE_YAW = -0.42;
+const BASE_POSE_ROLL = -0.24;
 
 export interface JellyfishOptions {
   tentacleCount: number;
@@ -37,7 +53,7 @@ export interface JellyfishUpdateContext {
   scrollProgress: number;
   /** 0 = distante no topo da hero, 1 = tamanho final após scroll intro. */
   heroIntroProgress: number;
-  /** 0..1 progresso scroll-driven: encolhe e move à direita ao entrar em trabalhos. */
+  /** 0..1 progresso scroll-driven na passagem hero→trabalhos (esquerda + zoom no meio). */
   trabalhosLayoutProgress: number;
   mouseTarget: THREE.Vector3 | null;
   /** Velocidade do cursor em unidades de mundo por segundo. */
@@ -47,6 +63,10 @@ export interface JellyfishUpdateContext {
   nearHeroCta: boolean;
   /** 0..1 glow contributed by nearby bioluminescent particles. */
   particleGlow: number;
+  /** 0..1 peso da seção contato no blend de scroll. */
+  contatoPresence: number;
+  /** 0..1 peso da seção trabalhos no blend de scroll. */
+  trabalhosPresence: number;
 }
 
 interface GlowLayer {
@@ -111,6 +131,7 @@ export class Jellyfish {
   private selfRotation = 0;
   private approachZ = 0;
   private trabalhosLayoutSmoothed = 0;
+  private heroRiseProgress = 0;
   private displayColor = new THREE.Color('#e879f9');
   private readonly hotFuchsia = new THREE.Color('#f0abfc');
   private displayEmissive = 0.5;
@@ -121,13 +142,16 @@ export class Jellyfish {
   private readonly baseNeon = new THREE.Color('#c994e8');
   private readonly hoverColor = new THREE.Color('#22d3ee');
   private readonly hoverNeon = new THREE.Color('#67e8f9');
+  private readonly oceanCyan = new THREE.Color('#22d3ee');
+  private readonly oceanBlue = new THREE.Color('#38bdf8');
+  private readonly accentScratch = new THREE.Color();
   private readonly mossBell = new THREE.Color('#4f9e66');
   private readonly mossBright = new THREE.Color('#6ecf8a');
   private readonly activeNeon = new THREE.Color('#e879f9');
   private readonly mouseScratch = new THREE.Vector3();
 
   constructor(opts: JellyfishOptions) {
-    const radius = 1.08;
+    const radius = 0.82;
     const thetaLength = Math.PI * 0.62;
     this.bellGeometry = new THREE.SphereGeometry(radius, 40, 28, 0, Math.PI * 2, 0, thetaLength);
     this.basePositions = (this.bellGeometry.attributes.position.array as Float32Array).slice();
@@ -256,10 +280,23 @@ export class Jellyfish {
 
     this.displayColor.lerp(state.bellColor, Math.min(1, dt * 2.2));
 
+    const oceanShift = transitionOceanPulse(ctx.trabalhosLayoutProgress);
+    const ctaPresence = ctx.contatoPresence;
+    const glowDrive = THREE.MathUtils.smoothstep(state.emissiveIntensity, 0.58, 1.05);
+    if (oceanShift > 0.001) {
+      this.displayColor.lerp(this.oceanCyan, oceanShift * 0.82);
+      this.displayColor.lerp(this.oceanBlue, oceanShift * 0.38);
+    }
+
+    if (ctaPresence > 0.001) {
+      this.displayColor.lerp(this.hotFuchsia, ctaPresence * 0.42);
+      this.displayColor.lerp(this.whiteAccent, ctaPresence * 0.1);
+    }
+
     const heroPresence =
       (1 - ctx.trabalhosLayoutProgress) * THREE.MathUtils.smoothstep(ctx.heroIntroProgress, 0.25, 0.95);
     if (heroPresence > 0.001) {
-      this.displayColor.lerp(this.mossBell, heroPresence * 0.38);
+      this.displayColor.lerp(this.mossBell, heroPresence * 0.38 * (1 - oceanShift * 0.85));
     }
 
     if (this.hoverAmount > 0.001) {
@@ -273,7 +310,7 @@ export class Jellyfish {
     this.activeNeon.copy(this.baseNeon).lerp(this.hoverNeon, this.hoverAmount);
     this.displayEmissive = THREE.MathUtils.lerp(
       this.displayEmissive,
-      state.emissiveIntensity + this.hoverAmount * 0.18,
+      state.emissiveIntensity + this.hoverAmount * 0.18 + oceanShift * 0.32 + ctaPresence * 0.28,
       Math.min(1, dt * 2.2)
     );
 
@@ -285,68 +322,88 @@ export class Jellyfish {
     this.flashBoost *= 0.86;
 
     const pulse = Math.sin(time * state.pulseSpeed * Math.PI * 2) * (state.pulseAmount + this.heroCtaAmount * 0.045);
+    const emissiveCap = 0.68 + glowDrive * 0.75 + ctaPresence * 0.22;
     const emissive = Math.min(
-      0.42,
+      emissiveCap,
       this.displayEmissive +
         this.flashBoost * state.flashIntensity * 0.5 +
         this.hoverAmount * 0.08 +
-        this.heroCtaAmount * 0.12
+        this.heroCtaAmount * 0.12 +
+        oceanShift * 0.22 +
+        ctaPresence * 0.2
     );
+
+    this.accentScratch.copy(this.hotFuchsia).lerp(this.oceanCyan, oceanShift * 0.9).lerp(this.oceanBlue, oceanShift * 0.35);
 
     const shellColor = this.bellMaterial.uniforms.uColor.value as THREE.Color;
     const coreColor = this.bellMaterial.uniforms.uCoreColor.value as THREE.Color;
     const neonUniform = this.bellMaterial.uniforms.uNeonColor.value as THREE.Color;
 
-    shellColor.copy(this.displayColor).lerp(this.hotFuchsia, 0.18);
-    coreColor.copy(this.displayColor).lerp(this.hotFuchsia, 0.55 + this.hoverAmount * 0.15);
-    coreColor.lerp(this.whiteAccent, 0.18 + this.hoverAmount * 0.08);
-    neonUniform.copy(this.displayColor).lerp(this.hotFuchsia, 0.65 + this.hoverAmount * 0.12);
+    shellColor.copy(this.displayColor).lerp(this.accentScratch, 0.18 + oceanShift * 0.28 + ctaPresence * 0.2);
+    coreColor.copy(this.displayColor).lerp(this.accentScratch, 0.55 + this.hoverAmount * 0.15 + oceanShift * 0.22 + ctaPresence * 0.25);
+    coreColor.lerp(this.whiteAccent, 0.18 + this.hoverAmount * 0.08 + oceanShift * 0.12 + ctaPresence * 0.22);
+    neonUniform.copy(this.displayColor).lerp(this.accentScratch, 0.65 + this.hoverAmount * 0.12 + oceanShift * 0.25 + ctaPresence * 0.18);
 
     this.bellMaterial.uniforms.uPulse.value = pulse;
     this.bellMaterial.uniforms.uTime.value = time;
-    this.bellMaterial.uniforms.uEmissive.value = Math.min(0.55, emissive * 0.75 + this.hoverAmount * 0.08);
-    this.bellMaterial.uniforms.uOrbGlow.value = 0.95 + emissive * 0.62 + this.hoverAmount * 0.14;
+    this.bellMaterial.uniforms.uEmissive.value = Math.min(
+      0.72 + glowDrive * 0.48 + ctaPresence * 0.15,
+      emissive * 0.75 + this.hoverAmount * 0.08 + oceanShift * 0.18 + ctaPresence * 0.22
+    );
+    this.bellMaterial.uniforms.uOrbGlow.value =
+      0.95 + emissive * 0.62 + this.hoverAmount * 0.14 + oceanShift * 0.35 + ctaPresence * 0.55 + glowDrive * 0.35;
 
     this.contourMaterial.uniforms.uPulse.value = pulse;
     this.contourMaterial.uniforms.uTime.value = time;
-    this.contourMaterial.uniforms.uEmissive.value = Math.min(0.42, emissive * 0.62);
+    this.contourMaterial.uniforms.uEmissive.value = Math.min(0.42 + glowDrive * 0.38, emissive * 0.62 + ctaPresence * 0.15);
     (this.contourMaterial.uniforms.uNeonColor.value as THREE.Color)
       .copy(this.displayColor)
-      .lerp(this.hotFuchsia, 0.65 + this.hoverAmount * 0.1);
+      .lerp(this.accentScratch, 0.65 + this.hoverAmount * 0.1 + oceanShift * 0.2);
     this.contourMaterial.uniforms.uIntensity.value =
-      0.18 + emissive * 0.08 + this.hoverAmount * 0.04;
+      0.18 + emissive * 0.08 + this.hoverAmount * 0.04 + ctaPresence * 0.22 + glowDrive * 0.18;
 
     this.outerHaloMaterial.uniforms.uPulse.value = pulse;
     this.outerHaloMaterial.uniforms.uTime.value = time;
-    this.outerHaloMaterial.uniforms.uEmissive.value = Math.min(0.55, emissive * 0.78);
+    this.outerHaloMaterial.uniforms.uEmissive.value = Math.min(0.55 + glowDrive * 0.42, emissive * 0.78 + ctaPresence * 0.2);
     (this.outerHaloMaterial.uniforms.uNeonColor.value as THREE.Color)
       .copy(this.displayColor)
-      .lerp(this.hotFuchsia, 0.55);
+      .lerp(this.accentScratch, 0.55 + oceanShift * 0.28);
     this.outerHaloMaterial.uniforms.uIntensity.value =
-      0.28 + emissive * 0.14 + this.hoverAmount * 0.06;
+      0.28 + emissive * 0.14 + this.hoverAmount * 0.06 + ctaPresence * 0.38 + glowDrive * 0.28;
 
     this.coreMaterial.uniforms.uPulse.value = pulse;
-    this.coreMaterial.uniforms.uEmissive.value = Math.min(0.72, emissive * 0.88 + this.hoverAmount * 0.14);
+    this.coreMaterial.uniforms.uTime.value = time;
+    this.coreMaterial.uniforms.uEmissive.value = Math.min(
+      0.72 + glowDrive * 0.45 + ctaPresence * 0.18,
+      emissive * 0.88 + this.hoverAmount * 0.14 + ctaPresence * 0.25
+    );
     (this.coreMaterial.uniforms.uNeonColor.value as THREE.Color)
       .copy(this.displayColor)
-      .lerp(this.hotFuchsia, 0.62);
+      .lerp(this.accentScratch, 0.62 + oceanShift * 0.3);
     (this.coreMaterial.uniforms.uCoreColor.value as THREE.Color)
-      .copy(this.hotFuchsia)
-      .lerp(this.whiteAccent, 0.52 + this.hoverAmount * 0.18);
+      .copy(this.accentScratch)
+      .lerp(this.whiteAccent, 0.52 + this.hoverAmount * 0.18 + oceanShift * 0.15 + ctaPresence * 0.28);
 
-    const innerStrength = 1.1 + emissive * 0.95 + this.hoverAmount * 0.28 + this.heroCtaAmount * 0.35;
-    this.innerLight.color.copy(this.hotFuchsia).lerp(this.mossBright, 0.12 + heroPresence * 0.32 + this.heroCtaAmount * 0.32);
-    this.innerLight.color.lerp(this.whiteAccent, 0.18 + this.hoverAmount * 0.1);
-    this.innerLight.intensity = innerStrength;
+    const innerStrength =
+      1.1 + emissive * 0.95 + this.hoverAmount * 0.28 + this.heroCtaAmount * 0.35 + ctaPresence * 0.75 + glowDrive * 0.45;
+    this.innerLight.color
+      .copy(this.accentScratch)
+      .lerp(this.mossBright, (0.12 + heroPresence * 0.32 + this.heroCtaAmount * 0.32) * (1 - oceanShift * 0.75));
+    this.innerLight.color.lerp(this.oceanCyan, oceanShift * 0.55);
+    this.innerLight.color.lerp(this.whiteAccent, 0.18 + this.hoverAmount * 0.1 + ctaPresence * 0.25);
+    this.innerLight.intensity = innerStrength + oceanShift * 0.45;
 
-    const tentacleEmissive = emissive * 0.55 + this.hoverAmount * 0.1 + 0.12;
+    const tentacleEmissive = emissive * 0.55 + this.hoverAmount * 0.1 + 0.12 + ctaPresence * 0.28;
     (this.tentacleMaterial.uniforms.uColor.value as THREE.Color)
       .copy(this.displayColor)
-      .lerp(this.hotFuchsia, 0.22);
+      .lerp(this.accentScratch, 0.22 + oceanShift * 0.35);
     (this.tentacleMaterial.uniforms.uEmissive.value as THREE.Color)
       .copy(this.displayColor)
-      .lerp(this.hotFuchsia, 0.72);
-    this.tentacleMaterial.uniforms.uEmissiveIntensity.value = Math.min(0.92, tentacleEmissive);
+      .lerp(this.accentScratch, 0.72 + oceanShift * 0.2 + ctaPresence * 0.18);
+    this.tentacleMaterial.uniforms.uEmissiveIntensity.value = Math.min(
+      0.92 + glowDrive * 0.18 + ctaPresence * 0.12,
+      tentacleEmissive
+    );
     this.tentacleMaterial.uniforms.uTime.value = time;
 
     this.outerHaloMesh.visible = true;
@@ -359,7 +416,7 @@ export class Jellyfish {
       mouseLocal = this.mouseScratch.copy(ctx.mouseTarget);
       this.group.worldToLocal(mouseLocal);
     }
-    this.headParticles.update(dt, time, mouseLocal, ctx.mouseSpeed, heroPresence + this.heroCtaAmount * 0.35);
+    this.headParticles.update(dt, time, mouseLocal, ctx.mouseSpeed, heroPresence + this.heroCtaAmount * 0.35, oceanShift);
 
     const anchorWorld = new THREE.Vector3();
     for (let i = 0; i < this.tentacles.length; i++) {
@@ -467,33 +524,50 @@ export class Jellyfish {
 
   private moveAndOrient(dt: number, time: number, state: JellyfishState, ctx: JellyfishUpdateContext) {
     const bob = Math.sin(time * 0.5 + this.bobPhase) * 0.16;
-    const heroLift = HERO_LIFT * Math.max(0, 1 - ctx.heroIntroProgress);
-    const swimY = -SWIM_RANGE / 2 + SWIM_RANGE * ctx.scrollProgress + heroLift + bob;
+    const swimY = -SWIM_RANGE / 2 + SWIM_RANGE * ctx.scrollProgress + bob;
     const curve = Math.sin(ctx.scrollProgress * Math.PI * 2.4 + time * 0.12) * state.swimCurviness * 1.1;
 
-    const intro = ctx.heroIntroProgress;
+    const introFromScroll = ctx.heroIntroProgress;
+    if (introFromScroll >= 0.999) {
+      this.heroRiseProgress = 1;
+    } else {
+      this.heroRiseProgress = Math.min(1, this.heroRiseProgress + dt / HERO_ENTER_DURATION);
+    }
+    const intro = Math.max(introFromScroll, this.heroRiseProgress);
+    const introEase = THREE.MathUtils.smoothstep(intro, 0, 1);
     this.trabalhosLayoutSmoothed = THREE.MathUtils.lerp(
       this.trabalhosLayoutSmoothed,
       ctx.trabalhosLayoutProgress,
       Math.min(1, dt * 6.5)
     );
     const trabalhos = this.trabalhosLayoutSmoothed;
-    const heroScale = THREE.MathUtils.lerp(HERO_INTRO_SCALE_START, 1, intro);
-    const heroZ = THREE.MathUtils.lerp(HERO_INTRO_Z_START, 0, intro);
-    const distantScale = THREE.MathUtils.lerp(heroScale, HERO_INTRO_SCALE_START, trabalhos);
-    const distantZ = THREE.MathUtils.lerp(heroZ, HERO_INTRO_Z_START, trabalhos);
-    const heroAlign =
-      (1 - trabalhos) * THREE.MathUtils.lerp(0.4, 1, THREE.MathUtils.smoothstep(intro, 0.15, 0.9));
+    const passCurve = Math.sin(trabalhos * Math.PI);
+    const sectionBlend = ctx.trabalhosPresence * (1 - passCurve * 0.85);
+    const heroScale = THREE.MathUtils.lerp(HERO_INTRO_SCALE_BOTTOM, HERO_INTRO_SCALE_TOP, introEase);
+    const heroZ = THREE.MathUtils.lerp(HERO_INTRO_Z_START, 0, introEase);
+    const heroAlign = THREE.MathUtils.lerp(0.4, 1, THREE.MathUtils.smoothstep(intro, 0.15, 0.9));
+    const heroIntroY = THREE.MathUtils.lerp(HERO_INTRO_Y_START, 0, introEase);
     const isDesktop = window.innerWidth >= DESKTOP_MIN_WIDTH;
     const heroX = HERO_X_OFFSET + (isDesktop ? HERO_X_DESKTOP_EXTRA : 0);
     const heroY = HERO_Y_OFFSET + (isDesktop ? HERO_Y_DESKTOP_EXTRA : 0);
-    const posX = THREE.MathUtils.lerp(curve + heroX * heroAlign, TRABALHOS_X_OFFSET, trabalhos);
-    const posY = swimY + heroY * heroAlign;
+    const walkLeft = WALK_LEFT_AMOUNT + (isDesktop ? WALK_LEFT_DESKTOP : 0);
+    const heroIntroWalk = Math.sin(introEase * Math.PI) * (1 - trabalhos);
+    const baseHeroX = curve + heroX * heroAlign;
+    const posX = baseHeroX - walkLeft * (heroIntroWalk + passCurve);
+    const trabalhosYDrop =
+      TRABALHOS_SECTION_Y_DROP + (isDesktop ? TRABALHOS_SECTION_Y_DROP_DESKTOP : 0);
+    const desktopYDrop = isDesktop ? HERO_Y_DESKTOP_DROP * heroAlign : 0;
+    const posY =
+      swimY + heroY * heroAlign + heroIntroY - desktopYDrop - sectionBlend * trabalhosYDrop;
+    const trabalhosScaleMul = THREE.MathUtils.lerp(1, TRABALHOS_SECTION_SCALE, sectionBlend);
+    const passZoomScale = 1 + passCurve * TRABALHOS_PASS_ZOOM_SCALE;
+    const passZoomZ = passCurve * TRABALHOS_PASS_ZOOM_Z;
 
-    const approachTarget = ctx.nearCTA || ctx.nearHeroCta ? 1 : 0;
+    const approachTarget =
+      ctx.nearCTA || ctx.nearHeroCta ? 1 : Math.min(0.72, ctx.contatoPresence * 0.95);
     this.approachZ = THREE.MathUtils.lerp(this.approachZ, approachTarget, Math.min(1, dt * (ctx.nearHeroCta ? 3.2 : 2)));
 
-    this.group.position.set(posX, posY, distantZ + this.approachZ * 1.1);
+    this.group.position.set(posX, posY, heroZ + passZoomZ + this.approachZ * 1.1);
 
     this.selfRotation += dt * state.rotationSpeed;
 
@@ -511,9 +585,14 @@ export class Jellyfish {
     this.currentGazeYaw = THREE.MathUtils.lerp(this.currentGazeYaw, targetYaw, 1 - Math.pow(0.001, dt));
     this.currentGazePitch = THREE.MathUtils.lerp(this.currentGazePitch, targetPitch, 1 - Math.pow(0.001, dt));
 
-    const scale = distantScale * (1 + this.approachZ * 0.08);
+    const scale =
+      heroScale * passZoomScale * trabalhosScaleMul * (1 + this.approachZ * (0.08 + ctx.contatoPresence * 0.06));
     this.group.scale.setScalar(scale);
-    this.group.rotation.set(this.currentGazePitch, this.selfRotation + this.currentGazeYaw, this.currentTilt);
+    this.group.rotation.set(
+      this.currentGazePitch,
+      this.selfRotation + this.currentGazeYaw + BASE_POSE_YAW,
+      this.currentTilt + BASE_POSE_ROLL
+    );
   }
 
   getCenter(target: THREE.Vector3): THREE.Vector3 {

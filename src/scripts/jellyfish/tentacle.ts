@@ -3,6 +3,12 @@ import * as THREE from 'three';
 const UP = new THREE.Vector3(0, 1, 0);
 const FALLBACK_UP = new THREE.Vector3(1, 0, 0);
 const CONSTRAINT_ITERATIONS = 4;
+const CONSTRAINT_STIFFNESS = 0.46;
+const MAX_SEGMENT_VELOCITY = 2.2;
+
+function isFiniteVec3(v: THREE.Vector3) {
+  return Number.isFinite(v.x) && Number.isFinite(v.y) && Number.isFinite(v.z);
+}
 
 export interface TentacleOptions {
   segmentCount: number;
@@ -67,6 +73,7 @@ export class Tentacle {
   readonly looseness: number;
   private readonly geometry: THREE.BufferGeometry;
   private readonly anchorLocal: THREE.Vector3;
+  private worldSynced = false;
 
   constructor(opts: TentacleOptions) {
     this.segmentCount = opts.segmentCount;
@@ -96,6 +103,15 @@ export class Tentacle {
     this.mesh.renderOrder = 1;
   }
 
+  private resetChain(anchor: THREE.Vector3, segmentLength: number) {
+    for (let i = 0; i < this.points.length; i++) {
+      const p = this.points[i];
+      const prev = this.prevPoints[i];
+      p.set(anchor.x, anchor.y - i * segmentLength, anchor.z);
+      prev.copy(p);
+    }
+  }
+
   /**
    * @param anchorWorld current world-space position of this tentacle's rim anchor
    * @param lengthMultiplier grows/shrinks the rope without touching topology
@@ -112,25 +128,42 @@ export class Tentacle {
     const segmentLength = this.baseSegmentLength * lengthMultiplier;
     const loosenessBoost = this.looseness - 1;
     const scrollAbs = Math.abs(scrollInfluence);
-    const effectiveDrag = Math.min(1, dragFactor + loosenessBoost * 0.42 + scrollAbs * 0.18);
-    const damping = 0.84 + effectiveDrag * 0.11 - loosenessBoost * 0.05 - scrollAbs * 0.08;
-    const waveStrength = 0.82 + effectiveDrag * 0.72 + loosenessBoost * 0.55 + scrollAbs * 0.5;
-    const waveFreq = 0.92 + loosenessBoost * 0.48;
-    const segmentWave = 0.82 + loosenessBoost * 0.42;
-    const waveScale = (1.35 + loosenessBoost * 1.15) * (1 + scrollAbs * 0.42);
 
     this.points[0].copy(anchorWorld);
     this.prevPoints[0].copy(anchorWorld);
+
+    if (!this.worldSynced || !isFiniteVec3(this.points[1])) {
+      this.resetChain(anchorWorld, segmentLength);
+      this.worldSynced = true;
+      this.writeGeometry();
+      return;
+    }
+
+    const effectiveDrag = Math.min(1, dragFactor + loosenessBoost * 0.42 + scrollAbs * 0.18);
+    const damping = 0.86 + effectiveDrag * 0.09 - loosenessBoost * 0.04 - scrollAbs * 0.06;
+    const waveStrength = 0.76 + effectiveDrag * 0.68 + loosenessBoost * 0.5 + scrollAbs * 0.45;
+    const waveFreq = 0.68 + loosenessBoost * 0.38;
+    const segmentWave = 0.58 + loosenessBoost * 0.34;
+    const waveScale = (1.22 + loosenessBoost * 1.0) * (1 + scrollAbs * 0.38);
+    const maxVel = MAX_SEGMENT_VELOCITY * (1 + loosenessBoost * 0.2);
 
     for (let i = 1; i < this.points.length; i++) {
       const point = this.points[i];
       const prev = this.prevPoints[i];
       const depthFactor = i / this.points.length;
-      const segPhase = this.phase + i * 0.62;
+      const segPhase = this.phase + i * 0.52;
+      const segmentDamping = Math.min(0.96, damping + depthFactor * 0.03);
 
-      const velX = (point.x - prev.x) * damping;
-      const velY = (point.y - prev.y) * damping;
-      const velZ = (point.z - prev.z) * damping;
+      let velX = (point.x - prev.x) * segmentDamping;
+      let velY = (point.y - prev.y) * segmentDamping;
+      let velZ = (point.z - prev.z) * segmentDamping;
+      const velLen = Math.hypot(velX, velY, velZ);
+      if (velLen > maxVel) {
+        const scale = maxVel / velLen;
+        velX *= scale;
+        velY *= scale;
+        velZ *= scale;
+      }
 
       prev.copy(point);
 
@@ -146,11 +179,11 @@ export class Tentacle {
       const waveAmp = waveStrength * depthFactor * dt * waveScale;
       const travelPhase = time * waveFreq - i * segmentWave + this.phase;
       const undulateX = Math.sin(travelPhase) * waveAmp;
-      const undulateZ = Math.cos(travelPhase * 1.12 + 0.5) * waveAmp * (0.88 + loosenessBoost * 0.24);
+      const undulateZ = Math.cos(travelPhase * 1.08 + 0.5) * waveAmp * (0.82 + loosenessBoost * 0.2);
       const ripple =
-        Math.sin(time * (0.52 + loosenessBoost * 0.42) + segPhase + depthFactor * 2.8) *
+        Math.sin(time * (0.38 + loosenessBoost * 0.3) + segPhase + depthFactor * 2.2) *
         waveAmp *
-        (0.55 + loosenessBoost * 0.42);
+        (0.42 + loosenessBoost * 0.34);
       const rippleMixX = 0.62 + loosenessBoost * 0.28;
       const rippleMixZ = 0.58 + loosenessBoost * 0.26;
 
@@ -159,8 +192,8 @@ export class Tentacle {
       point.z += velZ + undulateZ + ripple * rippleMixZ + scrollCurrentZ;
 
       if (loosenessBoost > 0) {
-        const secondaryPhase = time * 0.74 - i * 0.52 + this.phase * 1.25;
-        const secondaryAmp = waveAmp * 0.78;
+        const secondaryPhase = time * 0.52 - i * 0.44 + this.phase * 1.15;
+        const secondaryAmp = waveAmp * 0.62;
         point.x += Math.sin(secondaryPhase) * secondaryAmp;
         point.z += Math.cos(secondaryPhase * 1.08 + 0.35) * secondaryAmp * 0.86;
       }
@@ -174,7 +207,7 @@ export class Tentacle {
         const dy = p2.y - p1.y;
         const dz = p2.z - p1.z;
         const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 0.0001;
-        const diff = ((dist - segmentLength) / dist) * 0.5;
+        const diff = ((dist - segmentLength) / dist) * CONSTRAINT_STIFFNESS;
         const cx = dx * diff;
         const cy = dy * diff;
         const cz = dz * diff;
@@ -195,11 +228,48 @@ export class Tentacle {
       const parent = this.points[i - 1];
       const maxY = parent.y + segmentLength * (0.05 + loosenessBoost * 0.1);
       if (point.y > maxY) {
-        point.y = THREE.MathUtils.lerp(point.y, maxY, 0.22 - loosenessBoost * 0.1);
+        point.y = THREE.MathUtils.lerp(point.y, maxY, Math.max(0.05, 0.06 - loosenessBoost * 0.025));
       }
     }
 
+    let corrupted = !isFiniteVec3(anchorWorld);
+    for (let i = 1; i < this.points.length; i++) {
+      if (!isFiniteVec3(this.points[i])) corrupted = true;
+    }
+    if (corrupted) this.resetChain(anchorWorld, segmentLength);
+
     this.writeGeometry();
+  }
+
+  private buildFrame(
+    prev: THREE.Vector3,
+    next: THREE.Vector3,
+    tangent: THREE.Vector3,
+    normal: THREE.Vector3,
+    binormal: THREE.Vector3
+  ): boolean {
+    tangent.subVectors(next, prev);
+    if (!Number.isFinite(tangent.x) || tangent.lengthSq() < 1e-10) {
+      tangent.set(0, -1, 0);
+    }
+    tangent.normalize();
+
+    const upRef = Math.abs(tangent.dot(UP)) > 0.92 ? FALLBACK_UP : UP;
+    normal.crossVectors(upRef, tangent);
+    if (normal.lengthSq() < 1e-10) normal.crossVectors(FALLBACK_UP, tangent);
+    if (normal.lengthSq() < 1e-10) normal.set(1, 0, 0);
+    normal.normalize();
+
+    binormal.crossVectors(tangent, normal);
+    if (binormal.lengthSq() < 1e-10) binormal.crossVectors(tangent, FALLBACK_UP);
+    if (binormal.lengthSq() < 1e-10) binormal.set(0, 0, 1);
+    binormal.normalize();
+
+    return (
+      Number.isFinite(normal.x) &&
+      Number.isFinite(binormal.x) &&
+      Number.isFinite(tangent.x)
+    );
   }
 
   private writeGeometry() {
@@ -213,19 +283,25 @@ export class Tentacle {
     for (let i = 0; i < count; i++) {
       const prev = this.points[Math.max(0, i - 1)];
       const next = this.points[Math.min(count - 1, i + 1)];
-      tangent.subVectors(next, prev);
-      if (tangent.lengthSq() < 1e-8) tangent.set(0, -1, 0);
-      tangent.normalize();
-
-      const upRef = Math.abs(tangent.dot(UP)) > 0.98 ? FALLBACK_UP : UP;
-      normal.crossVectors(upRef, tangent).normalize();
-      binormal.crossVectors(tangent, normal).normalize();
+      const point = this.points[i];
 
       const t = i / Math.max(1, count - 1);
       const rootMask = t <= 0 ? 0 : Math.min(1, t / 0.11);
       const rootSmooth = rootMask * rootMask * (3 - 2 * rootMask);
       const radius = this.baseRadius * (1 - t * 0.75) * rootSmooth;
-      const point = this.points[i];
+
+      if (!isFiniteVec3(point) || !isFiniteVec3(prev) || !isFiniteVec3(next)) {
+        for (let j = 0; j < this.radialSegments; j++) {
+          const idx = i * this.radialSegments + j;
+          const px = isFiniteVec3(point) ? point.x : prev.x;
+          const py = isFiniteVec3(point) ? point.y : prev.y;
+          const pz = isFiniteVec3(point) ? point.z : prev.z;
+          posAttr.setXYZ(idx, px, py, pz);
+        }
+        continue;
+      }
+
+      if (!this.buildFrame(prev, next, tangent, normal, binormal)) continue;
 
       for (let j = 0; j < this.radialSegments; j++) {
         const angle = (j / this.radialSegments) * Math.PI * 2;
@@ -239,8 +315,18 @@ export class Tentacle {
     }
 
     posAttr.needsUpdate = true;
-    this.geometry.computeVertexNormals();
-    this.geometry.computeBoundingSphere();
+
+    let boundsOk = true;
+    for (const p of this.points) {
+      if (!isFiniteVec3(p)) {
+        boundsOk = false;
+        break;
+      }
+    }
+    if (boundsOk) {
+      this.geometry.computeVertexNormals();
+      this.geometry.computeBoundingSphere();
+    }
   }
 
   /** Tip position in world space — useful for spawning flash/particle effects. */

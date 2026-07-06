@@ -30,19 +30,42 @@ const whatsappUrl = 'https://wa.me/5514996040987?text=Ol%C3%A1%20Andr%C3%A9%2C%2
   <a href="#main" class="sr-only">Ir para o conteúdo</a>
 
   <header class="site-nav" aria-label="Navegação principal">
-    <a href="/" class="site-nav__brand">André Mendes</a>
-    <nav>
-      <ul class="site-nav__links">
-        <li><a href="#trabalhos">trabalhos</a></li>
-        <li><a href="#sobre">sobre</a></li>
-        <li><a href="#contato">contato</a></li>
-      </ul>
+    <nav class="site-nav__inner">
+      <button
+        type="button"
+        class="site-nav__toggle"
+        aria-expanded="false"
+        aria-controls="site-nav-panel"
+      >
+        <span class="sr-only">Abrir menu</span>
+        <span class="site-nav__badge" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </span>
+      </button>
+      <div id="site-nav-panel" class="site-nav__panel" hidden>
+        <ul class="site-nav__links">
+          <li><a href="#trabalhos">trabalhos</a></li>
+          <li><a href="#sobre">sobre</a></li>
+          <li><a href="#contato">contato</a></li>
+        </ul>
+      </div>
     </nav>
   </header>
 
+  <script>
+    import { initSiteNav } from '../scripts/siteNav';
+
+    const siteNav = document.querySelector<HTMLElement>('.site-nav');
+    if (siteNav) {
+      const destroySiteNav = initSiteNav(siteNav);
+      document.addEventListener('astro:before-swap', () => destroySiteNav(), { once: true });
+    }
+  </script>
+
   <main id="main">
     <section id="hero" class="hero" aria-labelledby="hero-heading" data-jellyfish-section="hero">
-      <a href="#trabalhos" class="hero__skip" data-hero-skip>Pular Introdução</a>
       <div class="hero__sticky container--wide">
         <div class="hero__content">
           <p class="hero__eyebrow">Olá, eu sou</p>

@@ -51,3 +51,29 @@ html.no-webgl .hero-shade {
       oklch(0.008 0.018 250 / 0.72) 100%
     );
 }
+
+/* Passagem hero→trabalhos: some com o HTML e deixa só a água-viva no pico */
+html:not(.no-webgl) .site-content,
+html:not(.no-webgl) .site-nav,
+html:not(.no-webgl) .site-footer {
+  opacity: calc(1 - var(--trabalhos-pass-curve, 0));
+}
+
+html[data-pass-isolated]:not(.no-webgl) .site-content,
+html[data-pass-isolated]:not(.no-webgl) .site-nav,
+html[data-pass-isolated]:not(.no-webgl) .site-footer {
+  pointer-events: none;
+}
+
+html[data-pass-isolated]:not(.no-webgl) .jellyfish-canvas {
+  z-index: var(--z-overlay);
+}
+
+html[data-pass-isolated]:not(.no-webgl) .bg-atmosphere {
+  opacity: calc(1 - var(--trabalhos-pass-curve, 0) * 0.92);
+}
+
+html[data-pass-isolated]:not(.no-webgl) .custom-cursor__dot,
+html[data-pass-isolated]:not(.no-webgl) .custom-cursor__ring {
+  opacity: calc(1 - var(--trabalhos-pass-curve, 0));
+}

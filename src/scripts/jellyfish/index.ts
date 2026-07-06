@@ -6,6 +6,7 @@ import { Jellyfish } from './jellyfish';
 import { ParticleField } from './particles';
 import { BubbleField, BUBBLE_PLANE_Z } from './bubbles';
 import { ScrollController } from './scroll';
+import { transitionOceanPulse } from './oceanPulse';
 import { MouseController } from './mouse';
 import { STATES } from './states';
 import { markWebGLFallback, probeWebGL, type WebGLFallbackReason } from './webgl';
@@ -153,6 +154,8 @@ export function initJellyfishScene(canvas: HTMLCanvasElement): () => void {
       nearCTA: false,
       nearHeroCta: false,
       particleGlow: 0,
+      contatoPresence: 0,
+      trabalhosPresence: 0,
     });
     particles.update(0, 0, state, jellyfish.getCenter(centerScratch), null, 0);
     water.update(0, state, 0, 0);
@@ -172,6 +175,7 @@ export function initJellyfishScene(canvas: HTMLCanvasElement): () => void {
   const ctaEl = document.querySelector<HTMLElement>('.contact__wa');
   const heroCtaEl = document.querySelector<HTMLElement>('.hero__cta');
   const keyMoss = new THREE.Color('#5fa872');
+  const keyOcean = new THREE.Color('#38bdf8');
 
   let lastTime = performance.now();
   const prevMouseTarget = new THREE.Vector3();
@@ -235,6 +239,8 @@ export function initJellyfishScene(canvas: HTMLCanvasElement): () => void {
       nearCTA,
       nearHeroCta,
       particleGlow: 0,
+      contatoPresence: scrollController!.getSectionWeight('contato'),
+      trabalhosPresence: scrollController!.getSectionWeight('trabalhos'),
     });
     water.update(time, state, scrollController!.getScrollVelocity(), scrollController!.getScrollProgress());
     bubbles.update(dt, time, state, camera, scrollController!.getScrollProgress(), bubbleMouse);
@@ -243,15 +249,17 @@ export function initJellyfishScene(canvas: HTMLCanvasElement): () => void {
 
     const heroWeight = scrollController!.getSectionWeight('hero');
     const trabalhosT = scrollController!.getTrabalhosLayoutProgress();
+    const oceanPulse = transitionOceanPulse(trabalhosT);
     const heroDark = (1 - trabalhosT) * Math.max(heroWeight, 1 - trabalhosT * 0.65);
     const oceanDepth = Math.min(1, state.waterDepth + scrollController!.getScrollProgress() * 0.42);
     const intro = scrollController!.getHeroIntroProgress();
     key.color.set('#b06cc8').lerp(keyMoss, intro * 0.4 * (1 - trabalhosT * 0.85));
-    key.intensity = 0.42 + state.ambientIntensity * 0.24 - oceanDepth * 0.07 - heroDark * 0.04;
-    ambient.intensity = 0.36 + state.ambientIntensity * 0.28 - oceanDepth * 0.12 - heroDark * 0.05;
+    key.color.lerp(keyOcean, oceanPulse * 0.72);
+    key.intensity = 0.42 + state.ambientIntensity * 0.24 - oceanDepth * 0.07 - heroDark * 0.04 + oceanPulse * 0.16;
+    ambient.intensity = 0.36 + state.ambientIntensity * 0.28 - oceanDepth * 0.12 - heroDark * 0.05 + oceanPulse * 0.08;
     const fog = scene.fog as THREE.FogExp2;
     fog.color.copy(state.fogColor);
-    fog.density = 0.1 + oceanDepth * 0.042 + heroDark * 0.055;
+    fog.density = 0.088 + oceanDepth * 0.038 + heroDark * 0.042 - oceanPulse * 0.038;
 
     safeRender();
   }

@@ -1,4 +1,5 @@
 import { blendStates, SECTION_KEYS, type JellyfishState, type SectionKey } from './states';
+import { getTrabalhosLayoutProgress } from '../trabalhosPass';
 
 interface TrackedSection {
   key: SectionKey;
@@ -115,7 +116,7 @@ export class ScrollController {
   }
 
   /**
-   * 0 → 1 transição suave hero→trabalhos (encolhe e desloca à direita).
+   * 0 → 1 passagem hero→trabalhos: no meio desloca à esquerda com zoom; no fim volta ao normal.
    * Começa no fim da hero, antes da seção seguinte entrar na tela.
    */
   getTrabalhosLayoutProgress(): number {
@@ -123,19 +124,7 @@ export class ScrollController {
   }
 
   private computeTrabalhosLayoutProgress(): number {
-    const trabalhos = this.sections.find((s) => s.key === 'trabalhos')?.el;
-    if (!trabalhos) return 0;
-
-    const introGate = this.smoothstep((this.getHeroIntroProgress() - 0.62) / 0.18);
-    if (introGate <= 0) return 0;
-
-    const viewportH = window.innerHeight;
-    const top = trabalhos.getBoundingClientRect().top;
-
-    const start = viewportH * 1.85;
-    const end = viewportH * 0.12;
-    const scrollT = this.smootherstep((start - top) / (start - end));
-    return scrollT * introGate;
+    return getTrabalhosLayoutProgress(this.getHeroIntroProgress());
   }
 
   /** Peso 0..1 de uma seção no blend atual (soma dos pesos ≈ 1). */
@@ -146,11 +135,6 @@ export class ScrollController {
   private smoothstep(t: number): number {
     const c = Math.min(1, Math.max(0, t));
     return c * c * (3 - 2 * c);
-  }
-
-  private smootherstep(t: number): number {
-    const c = Math.min(1, Math.max(0, t));
-    return c * c * c * (c * (c * 6 - 15) + 10);
   }
 
   /** Smoothed pixels-per-frame scroll velocity, signed (positive = scrolling down). */
