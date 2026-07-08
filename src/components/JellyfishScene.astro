@@ -5,19 +5,23 @@
 <canvas id="jellyfish-canvas" class="jellyfish-canvas" aria-hidden="true"></canvas>
 
 <script>
-  import { initJellyfishScene } from '../scripts/jellyfish/index';
+  import { markWebGLFallback } from '../scripts/jellyfish/webgl';
 
   const canvas = document.getElementById('jellyfish-canvas') as HTMLCanvasElement | null;
-  if (canvas) {
+  if (!canvas) throw new Error('jellyfish-canvas missing');
+
+  async function bootJellyfish() {
     try {
       document.documentElement.classList.remove('no-webgl');
       canvas.hidden = false;
+      const { initJellyfishScene } = await import('../scripts/jellyfish/index');
       const destroy = initJellyfishScene(canvas);
       document.addEventListener('astro:before-swap', () => destroy(), { once: true });
-    } catch {
-      canvas.hidden = true;
-      document.documentElement.classList.add('no-webgl');
-      document.dispatchEvent(new CustomEvent('jellyfish:unavailable', { detail: { reason: 'init-error' } }));
+    } catch (error) {
+      console.error('[jellyfish] init failed', error);
+      markWebGLFallback('init-error', canvas);
     }
   }
+
+  void bootJellyfish();
 </script>

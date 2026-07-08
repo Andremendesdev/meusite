@@ -1,17 +1,14 @@
 import * as THREE from 'three';
 import { createJellyfishScene } from './scene';
 import { Environment } from './environment';
-import { WaterBackdrop } from './water';
 import { Jellyfish } from './jellyfish';
 import { ParticleField } from './particles';
-import { BubbleField, BUBBLE_PLANE_Z } from './bubbles';
 import { ScrollController } from './scroll';
 import { transitionOceanPulse } from './oceanPulse';
 import { MouseController } from './mouse';
 import { STATES } from './states';
 import { markWebGLFallback, probeWebGL, type WebGLFallbackReason } from './webgl';
 
-const WATER_DEPTH = -7;
 const ENV_DEPTH = -6;
 const MAX_RENDER_ERRORS = 3;
 
@@ -59,9 +56,6 @@ export function initJellyfishScene(canvas: HTMLCanvasElement): () => void {
 
   const { scene, camera, ambient, key } = createJellyfishScene(window.innerWidth / window.innerHeight);
 
-  const water = new WaterBackdrop(coarsePointer);
-  scene.add(water.mesh);
-
   const environment = new Environment();
   scene.add(environment.mesh);
 
@@ -75,9 +69,6 @@ export function initJellyfishScene(canvas: HTMLCanvasElement): () => void {
 
   const particles = new ParticleField(coarsePointer ? 8 : 14);
   scene.add(particles.object);
-
-  const bubbles = new BubbleField(coarsePointer ? 24 : 52);
-  scene.add(bubbles.object);
 
   let disposed = false;
   let running = true;
@@ -96,8 +87,6 @@ export function initJellyfishScene(canvas: HTMLCanvasElement): () => void {
     mouseController?.destroy();
     jellyfish.dispose();
     particles.dispose();
-    bubbles.dispose();
-    water.dispose();
     environment.dispose();
     renderer.dispose();
   }
@@ -113,7 +102,6 @@ export function initJellyfishScene(canvas: HTMLCanvasElement): () => void {
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
     renderer.setSize(width, height, false);
-    water.fit(camera, WATER_DEPTH);
     environment.fit(camera, ENV_DEPTH);
   }
   window.addEventListener('resize', resize, { passive: true });
@@ -160,8 +148,6 @@ export function initJellyfishScene(canvas: HTMLCanvasElement): () => void {
       sobrePresence: 0,
     });
     particles.update(0, 0, state, jellyfish.getCenter(centerScratch), null, 0);
-    water.update(0, state, 0, 0);
-    bubbles.update(0, 0, state, camera, 0);
     environment.update(0, state);
     key.color.set('#b06cc8');
     key.intensity = 0.5 + state.ambientIntensity * 0.28;
@@ -210,9 +196,6 @@ export function initJellyfishScene(canvas: HTMLCanvasElement): () => void {
     } else {
       hasPrevMouse = false;
     }
-    const bubbleMouse = mouseController
-      ? mouseController.getWorldTarget(camera, BUBBLE_PLANE_Z)
-      : null;
     const nearCTA = mouseController ? mouseController.isNearElement(ctaEl) : false;
     const nearHeroCta = mouseController ? mouseController.isNearElement(heroCtaEl, 200) : false;
     const scrollInfluence = THREE.MathUtils.clamp(
@@ -246,9 +229,6 @@ export function initJellyfishScene(canvas: HTMLCanvasElement): () => void {
       trabalhosPresence: scrollController!.getSectionWeight('trabalhos'),
       sobrePresence: scrollController!.getSectionWeight('sobre'),
     });
-    water.update(time, state, scrollController!.getScrollVelocity(), scrollController!.getScrollProgress());
-    bubbles.update(dt, time, state, camera, scrollController!.getScrollProgress(), bubbleMouse);
-
     environment.update(time, state);
 
     const heroWeight = scrollController!.getSectionWeight('hero');

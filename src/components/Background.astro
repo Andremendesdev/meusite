@@ -1,12 +1,26 @@
 ---
-/** Organic neon blobs + grain. Cursor parallax on fine pointer devices only. */
+import { BG_GALAXIES } from '../data/bgGalaxies';
+
+/** Organic neon blobs + grain + galáxias fixas no fundo. */
 ---
+
+<div class="bg-galaxies" aria-hidden="true">
+  {
+    BG_GALAXIES.map((galaxy, index) => (
+      <span
+        class={`bg-galaxy bg-galaxy--${galaxy.tone}`}
+        style={`--gx: ${galaxy.x}; --gy: ${galaxy.y}; --g-size: ${galaxy.size}px; --g-rot: ${galaxy.rot}deg; --g-opacity: ${galaxy.opacity}; --g-twinkle-delay: ${index * -1.7}s;`}
+      >
+        <span class="bg-galaxy__sparkles" aria-hidden="true"></span>
+      </span>
+    ))
+  }
+</div>
 
 <div class="bg-atmosphere" id="bg-atmosphere" aria-hidden="true">
   <div class="bg-atmosphere__blob bg-atmosphere__blob--1"></div>
   <div class="bg-atmosphere__blob bg-atmosphere__blob--2"></div>
   <div class="bg-atmosphere__blob bg-atmosphere__blob--3"></div>
-  <div class="bg-atmosphere__abyss"></div>
   <div class="bg-atmosphere__grain"></div>
 </div>
 

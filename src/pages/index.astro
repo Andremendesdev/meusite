@@ -1,5 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import { splitHeroChars, heroTailDelay } from '../utils/heroChars';
 
 const projects = [
   {
@@ -21,6 +22,14 @@ const projects = [
 ];
 
 const whatsappUrl = 'https://wa.me/5514996040987?text=Ol%C3%A1%20Andr%C3%A9%2C%20vi%20seu%20portf%C3%B3lio%20e%20quero%20conversar.';
+
+const { chars: heroNameChars, nextIndex: heroRoleStart } = splitHeroChars('André Mendes');
+const { chars: heroDevChars, nextIndex: heroDevEnd } = splitHeroChars('Desenvolvedor', heroRoleStart);
+const { chars: heroRoleAccentChars, nextIndex: heroCharCount } = splitHeroChars(
+  ' & Designer',
+  heroDevEnd
+);
+const heroTailMs = heroTailDelay(heroCharCount);
 ---
 
 <Layout
@@ -67,27 +76,65 @@ const whatsappUrl = 'https://wa.me/5514996040987?text=Ol%C3%A1%20Andr%C3%A9%2C%2
   <main id="main">
     <section id="hero" class="hero" aria-labelledby="hero-heading" data-jellyfish-section="hero">
       <div class="hero__sticky container--wide">
-        <div class="hero__content">
-          <p class="hero__eyebrow">Olá, eu sou</p>
+        <div class="hero__content" style={`--hero-tail-delay: ${heroTailMs}ms`}>
+          <p class="hero__eyebrow hero__enter">Olá, eu sou</p>
 
           <h1
             id="hero-heading"
             class="hero__display"
-            aria-label="André Mendes — desenvolvedor e designer"
+            aria-label="André Mendes — desenvolvedor & designer"
           >
-            <span class="hero__line">André Mendes</span>
-            <span class="hero__line hero__line--role">
-              Desenvolvedor <span class="hero__line--accent">&amp; Designer</span>
+            <span class="hero__line hero__line--name" aria-hidden="true">
+              {
+                heroNameChars.map(({ char, index }) =>
+                  index === null ? (
+                    <span class="hero__char hero__char--space">{'\u00A0'}</span>
+                  ) : (
+                    <span class="hero__char" style={`--char-index: ${index}`}>
+                      {char}
+                    </span>
+                  )
+                )
+              }
+            </span>
+            <span class="hero__line hero__line--role" aria-hidden="true">
+              <span class="hero__word">
+                {
+                  heroDevChars.map(({ char, index }) =>
+                    index === null ? (
+                      <span class="hero__char hero__char--space">{'\u00A0'}</span>
+                    ) : (
+                      <span class="hero__char" style={`--char-index: ${index}`}>
+                        {char}
+                      </span>
+                    )
+                  )
+                }
+              </span>
+              <span class="hero__line--accent hero__word">
+                {
+                  heroRoleAccentChars.map(({ char, index }) =>
+                    index === null ? (
+                      <span class="hero__char hero__char--space">{'\u00A0'}</span>
+                    ) : (
+                      <span class="hero__char" style={`--char-index: ${index}`}>
+                        {char}
+                      </span>
+                    )
+                  )
+                }
+              </span>
             </span>
           </h1>
 
-          <p class="hero__subline" aria-live="polite" aria-atomic="true">
+          <p class="hero__subline hero__enter" aria-live="polite" aria-atomic="true">
             <span data-hero-role-line>Faço sites rápidos com design que converte.</span>
           </p>
 
           <div class="hero__actions">
             <a
-              class="hero__cta hero__cta--primary"
+              class="hero__cta hero__cta--primary hero__enter hero__enter--cta"
+              style="--cta-i: 0"
               href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
@@ -99,7 +146,7 @@ const whatsappUrl = 'https://wa.me/5514996040987?text=Ol%C3%A1%20Andr%C3%A9%2C%2
               Chamar no WhatsApp
               <span class="hero__cta-arrow" aria-hidden="true">↗</span>
             </a>
-            <a class="hero__cta hero__cta--ghost" href="#trabalhos">
+            <a class="hero__cta hero__cta--ghost hero__enter hero__enter--cta" style="--cta-i: 1" href="#trabalhos">
               <svg class="hero__cta-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M8 5v14l11-7z" />
               </svg>
@@ -108,7 +155,7 @@ const whatsappUrl = 'https://wa.me/5514996040987?text=Ol%C3%A1%20Andr%C3%A9%2C%2
           </div>
         </div>
 
-        <div class="hero__intro" aria-live="polite" aria-atomic="true">
+        <div class="hero__intro hero__enter" aria-live="polite" aria-atomic="true">
           <span
             class="hero__progress"
             data-hero-progress
@@ -130,11 +177,22 @@ const whatsappUrl = 'https://wa.me/5514996040987?text=Ol%C3%A1%20Andr%C3%A9%2C%2
 
     <script>
       import { initHeroScroll } from '../scripts/heroScroll';
+      import { initHeroStarField } from '../scripts/heroStarField';
 
       const hero = document.getElementById('hero');
       if (hero) {
+        const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         const destroyHeroScroll = initHeroScroll(hero);
-        document.addEventListener('astro:before-swap', () => destroyHeroScroll(), { once: true });
+        const destroyHeroStars = !reduced ? initHeroStarField() : () => {};
+
+        document.addEventListener(
+          'astro:before-swap',
+          () => {
+            destroyHeroScroll();
+            destroyHeroStars();
+          },
+          { once: true }
+        );
       }
     </script>
 

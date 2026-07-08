@@ -31,10 +31,8 @@ function applyStaticHero(hero: HTMLElement) {
 
   const progress = hero.querySelector<HTMLElement>('[data-hero-progress]');
   const hint = hero.querySelector<HTMLElement>('[data-hero-hint]');
-  const shade = document.querySelector<HTMLElement>('.hero-shade');
 
   if (progress) progress.hidden = true;
-  if (shade) shade.style.opacity = '1';
   if (hint) {
     const hintText = hint.querySelector<HTMLElement>('[data-hero-hint-text]');
     if (hintText) hintText.textContent = HINT_STATIC;
@@ -42,44 +40,15 @@ function applyStaticHero(hero: HTMLElement) {
   }
 }
 
-function updateHeroShade(hero: HTMLElement, passCurve = 0) {
-  const shade = document.querySelector<HTMLElement>('.hero-shade');
-  const ambient = document.querySelector<HTMLElement>('.hero-ambient');
-  if (!shade && !ambient) return;
-
-  const viewportH = window.innerHeight;
-  const bottom = hero.getBoundingClientRect().bottom;
-  const fadeStart = viewportH * 1.1;
-  const fadeEnd = viewportH * 0.35;
-  const t = (fadeStart - bottom) / (fadeStart - fadeEnd);
-  const scrollFade = Math.min(1, Math.max(0, t));
-  const opacity = Math.max(scrollFade, passCurve * 0.98);
-
-  if (shade) shade.style.opacity = String(opacity);
-  if (ambient && document.documentElement.classList.contains('no-webgl')) {
-    ambient.style.opacity = String(opacity);
-  }
-}
-
 /**
  * Atualiza copy da hero, barra de progresso e aria-live conforme o scroll intro.
  */
 export function initHeroScroll(hero: HTMLElement): () => void {
+  clearPassIsolation();
+
   if (isStaticScene()) {
     applyStaticHero(hero);
-
-    function onScrollStatic() {
-      updateHeroShade(hero);
-    }
-
-    window.addEventListener('scroll', onScrollStatic, { passive: true });
-    window.addEventListener('resize', onScrollStatic, { passive: true });
-    onScrollStatic();
-
-    return () => {
-      window.removeEventListener('scroll', onScrollStatic);
-      window.removeEventListener('resize', onScrollStatic);
-    };
+    return () => {};
   }
 
   const roleLine = hero.querySelector<HTMLElement>('[data-hero-role-line]');
@@ -111,7 +80,6 @@ export function initHeroScroll(hero: HTMLElement): () => void {
     const passCurve = getCombinedPassCurve(passProgress, sobrePass);
 
     updatePassIsolation(passCurve);
-    updateHeroShade(hero, passCurve);
 
     const pct = Math.round(t * 100);
 

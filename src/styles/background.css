@@ -1,11 +1,188 @@
-/* Atmospheric background — aqueous neon blobs */
+/* Galáxias fixas — não seguem parallax do mouse */
+
+.bg-galaxies {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-scene-bg);
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.bg-galaxy {
+  --g-core: oklch(0.84 0.12 205 / 0.95);
+  --g-arm-a: oklch(0.78 0.14 195 / 0.55);
+  --g-arm-b: oklch(0.68 0.26 320 / 0.35);
+  --g-halo: oklch(0.24 0.09 248 / 0.4);
+  --g-sparkle: oklch(0.84 0.12 205);
+  --g-dust: oklch(0.68 0.26 320 / 0.22);
+
+  position: absolute;
+  left: var(--gx, 50%);
+  top: var(--gy, 50%);
+  width: var(--g-size, 140px);
+  height: calc(var(--g-size, 140px) * 0.4);
+  opacity: var(--g-opacity, 0.6);
+  transform: translate(-50%, -50%) rotate(var(--g-rot, -18deg));
+  border-radius: 50%;
+  background:
+    radial-gradient(ellipse 18% 28% at 52% 48%, oklch(0.98 0 0 / 0.55) 0%, transparent 72%),
+    radial-gradient(ellipse 34% 22% at 68% 44%, var(--g-dust) 0%, transparent 70%),
+    radial-gradient(ellipse 28% 42% at 50% 50%, var(--g-core) 0%, transparent 72%),
+    radial-gradient(ellipse 92% 38% at 50% 50%, var(--g-arm-a) 0%, transparent 68%),
+    radial-gradient(ellipse 78% 28% at 62% 48%, var(--g-arm-b) 0%, transparent 62%),
+    radial-gradient(ellipse 120% 55% at 50% 50%, var(--g-halo) 0%, transparent 70%);
+  mix-blend-mode: screen;
+}
+
+.bg-galaxy__sparkles {
+  position: absolute;
+  inset: -12%;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0.82;
+  mask-image: radial-gradient(ellipse 90% 44% at 50% 50%, #000 18%, transparent 74%);
+  background-image:
+    radial-gradient(circle, oklch(0.98 0 0 / 0.95) 0 0.45px, transparent 0.55px),
+    radial-gradient(circle, var(--g-sparkle) 0 0.35px, transparent 0.45px),
+    radial-gradient(circle, oklch(0.98 0 0 / 0.7) 0 0.3px, transparent 0.4px);
+  background-size: 19px 17px, 27px 23px, 31px 29px;
+  background-position: 4px 6px, 11px 3px, 7px 14px;
+}
+
+.bg-galaxy::before {
+  content: '';
+  position: absolute;
+  inset: -20%;
+  border-radius: 50%;
+  opacity: 0.92;
+  transform: rotate(calc(var(--g-rot, -18deg) * -0.35));
+  background:
+    linear-gradient(oklch(0.98 0 0 / 0.85), oklch(0.98 0 0 / 0.85)) 24% 42% / 1px 5px no-repeat,
+    linear-gradient(oklch(0.98 0 0 / 0.85), oklch(0.98 0 0 / 0.85)) 24% 42% / 5px 1px no-repeat,
+    linear-gradient(var(--g-sparkle), var(--g-sparkle)) 58% 36% / 1px 4px no-repeat,
+    linear-gradient(var(--g-sparkle), var(--g-sparkle)) 58% 36% / 4px 1px no-repeat,
+    linear-gradient(oklch(0.98 0 0 / 0.7), oklch(0.98 0 0 / 0.7)) 72% 54% / 1px 3px no-repeat,
+    linear-gradient(oklch(0.98 0 0 / 0.7), oklch(0.98 0 0 / 0.7)) 72% 54% / 3px 1px no-repeat,
+    radial-gradient(circle at 22% 44%, oklch(0.98 0 0 / 0.95) 0 0.65px, transparent 1px),
+    radial-gradient(circle at 38% 58%, oklch(0.98 0 0 / 0.8) 0 0.55px, transparent 1px),
+    radial-gradient(circle at 54% 36%, var(--g-sparkle) 0 0.6px, transparent 1px),
+    radial-gradient(circle at 68% 52%, oklch(0.98 0 0 / 0.75) 0 0.5px, transparent 1px),
+    radial-gradient(circle at 76% 40%, oklch(0.98 0 0 / 0.85) 0 0.55px, transparent 1px),
+    radial-gradient(circle at 44% 48%, oklch(0.98 0 0 / 0.7) 0 0.45px, transparent 1px),
+    radial-gradient(circle at 31% 28%, var(--g-sparkle) 0 0.5px, transparent 1px),
+    radial-gradient(circle at 63% 62%, oklch(0.98 0 0 / 0.65) 0 0.4px, transparent 1px),
+    radial-gradient(circle at 82% 28%, var(--g-dust) 0 0.55px, transparent 1px),
+    radial-gradient(circle at 18% 66%, oklch(0.98 0 0 / 0.6) 0 0.4px, transparent 1px),
+    radial-gradient(circle at 48% 22%, oklch(0.98 0 0 / 0.8) 0 0.5px, transparent 1px),
+    radial-gradient(circle at 86% 48%, var(--g-sparkle) 0 0.45px, transparent 1px);
+}
+
+.bg-galaxy::after {
+  content: '';
+  position: absolute;
+  inset: -38%;
+  border-radius: 50%;
+  opacity: 0.62;
+  background:
+    radial-gradient(ellipse 55% 28% at 62% 46%, var(--g-arm-b) 0%, transparent 68%),
+    radial-gradient(ellipse 100% 45% at 50% 50%, var(--g-halo) 0%, transparent 72%);
+}
+
+.bg-galaxy--cyan {
+  --g-core: oklch(0.86 0.11 205 / 0.95);
+  --g-arm-a: oklch(0.78 0.14 195 / 0.62);
+  --g-arm-b: oklch(0.72 0.1 230 / 0.38);
+  --g-halo: oklch(0.32 0.1 248 / 0.42);
+  --g-sparkle: oklch(0.84 0.12 205);
+  --g-dust: oklch(0.72 0.14 248 / 0.28);
+}
+
+.bg-galaxy--fuchsia {
+  --g-core: oklch(0.82 0.18 320 / 0.92);
+  --g-arm-a: oklch(0.68 0.26 320 / 0.58);
+  --g-arm-b: oklch(0.58 0.22 320 / 0.42);
+  --g-halo: oklch(0.28 0.12 310 / 0.38);
+  --g-sparkle: oklch(0.9 0.14 320);
+  --g-dust: oklch(0.68 0.26 320 / 0.3);
+}
+
+.bg-galaxy--blue {
+  --g-core: oklch(0.8 0.12 248 / 0.9);
+  --g-arm-a: oklch(0.55 0.16 248 / 0.55);
+  --g-arm-b: oklch(0.78 0.14 195 / 0.32);
+  --g-halo: oklch(0.22 0.1 255 / 0.45);
+  --g-sparkle: oklch(0.78 0.14 195);
+  --g-dust: oklch(0.58 0.18 280 / 0.26);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .bg-galaxy {
+    animation: galaxy-drift 28s var(--ease-out-expo) infinite alternate;
+  }
+
+  .bg-galaxy__sparkles,
+  .bg-galaxy::before {
+    animation: galaxy-twinkle 5.5s var(--ease-out-expo) infinite alternate;
+    animation-delay: var(--g-twinkle-delay, 0s);
+  }
+
+  .bg-galaxy:nth-child(3n) {
+    animation-duration: 34s;
+    animation-delay: -6s;
+  }
+
+  .bg-galaxy:nth-child(3n) .bg-galaxy__sparkles,
+  .bg-galaxy:nth-child(3n)::before {
+    animation-duration: 6.2s;
+    animation-delay: calc(var(--g-twinkle-delay, 0s) - 1.2s);
+  }
+
+  .bg-galaxy:nth-child(3n + 2) {
+    animation-duration: 31s;
+    animation-delay: -12s;
+  }
+
+  .bg-galaxy:nth-child(3n + 2) .bg-galaxy__sparkles,
+  .bg-galaxy:nth-child(3n + 2)::before {
+    animation-duration: 4.8s;
+    animation-delay: calc(var(--g-twinkle-delay, 0s) - 2.4s);
+  }
+}
+
+@keyframes galaxy-drift {
+  0% {
+    opacity: calc(var(--g-opacity, 0.6) * 0.9);
+  }
+  100% {
+    opacity: var(--g-opacity, 0.6);
+  }
+}
+
+@keyframes galaxy-twinkle {
+  0% {
+    opacity: 0.58;
+  }
+  100% {
+    opacity: 0.95;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-galaxy,
+  .bg-galaxy__sparkles,
+  .bg-galaxy::before {
+    animation: none;
+  }
+}
+
+/* Atmospheric background — neon blobs com parallax sutil */
 
 .bg-atmosphere {
   --px: 0px;
   --py: 0px;
   position: fixed;
   inset: 0;
-  z-index: var(--z-scene-bg);
+  z-index: calc(var(--z-scene-bg) + 1);
   pointer-events: none;
   overflow: hidden;
   transform: translate3d(var(--px), var(--py), 0);
@@ -30,9 +207,8 @@
   inset: 0;
   background: linear-gradient(
     180deg,
-    oklch(0.01 0.028 252 / 0.42) 0%,
-    oklch(0.007 0.024 248 / 0.72) 42%,
-    oklch(0.004 0.022 245 / 0.96) 100%
+    oklch(0.01 0.01 252 / 0.18) 0%,
+    transparent 55%
   );
   pointer-events: none;
 }
@@ -42,7 +218,7 @@
   top: -4%;
   width: min(60vw, 820px);
   height: min(60vw, 820px);
-  background: oklch(0.22 0.11 252 / 0.038);
+  background: oklch(0.22 0.11 252 / 0.055);
   filter: blur(130px);
 }
 
@@ -51,7 +227,7 @@
   top: 38%;
   width: min(46vw, 640px);
   height: min(46vw, 640px);
-  background: oklch(0.18 0.12 240 / 0.032);
+  background: oklch(0.18 0.12 240 / 0.048);
   filter: blur(120px);
   animation-delay: 3s;
 }
@@ -61,22 +237,9 @@
   left: 24%;
   width: min(40vw, 560px);
   height: min(40vw, 560px);
-  background: oklch(0.14 0.1 246 / 0.042);
+  background: oklch(0.14 0.1 246 / 0.058);
   filter: blur(140px);
   animation-delay: 6s;
-}
-
-.bg-atmosphere__abyss {
-  position: absolute;
-  inset: auto 0 0 0;
-  height: min(58vh, 560px);
-  background: linear-gradient(
-    to top,
-    oklch(0.004 0.035 248 / 1) 0%,
-    oklch(0.006 0.028 246 / 0.95) 42%,
-    oklch(0.005 0.022 250 / 0.62) 100%
-  );
-  pointer-events: none;
 }
 
 .bg-atmosphere__grain {

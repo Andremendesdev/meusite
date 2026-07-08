@@ -13,43 +13,8 @@
   display: none;
 }
 
-/* Brilho estático quando WebGL não está disponível — abaixo da água-viva */
-.hero-ambient {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-scene-shade);
-  pointer-events: none;
-  opacity: 0;
-  background:
-    radial-gradient(ellipse 44% 40% at 58% 34%, oklch(0.28 0.13 250 / 0.26), transparent 72%),
-    radial-gradient(ellipse 30% 26% at 46% 40%, oklch(0.22 0.1 238 / 0.16), transparent 68%),
-    radial-gradient(ellipse 55% 50% at 50% 55%, oklch(0.04 0.06 248 / 0.72), transparent 75%);
-  transition: opacity var(--duration-med) var(--ease-out-expo);
-}
-
-html.no-webgl .hero-ambient {
-  opacity: 1;
-}
-
 html.no-webgl .jellyfish-canvas {
   display: none;
-}
-
-html.no-webgl .hero-shade {
-  background:
-    oklch(0.006 0.018 248 / 0.96),
-    radial-gradient(
-      ellipse 92% 82% at 55% 36%,
-      oklch(0.03 0.06 246 / 0.74) 0%,
-      oklch(0.012 0.03 250 / 0.94) 52%,
-      oklch(0.005 0.022 252 / 0.99) 100%
-    ),
-    linear-gradient(
-      to top,
-      oklch(0.004 0.014 248 / 1) 0%,
-      oklch(0.006 0.016 246 / 0.96) 32%,
-      oklch(0.008 0.018 250 / 0.72) 100%
-    );
 }
 
 /* Passagem hero→trabalhos: some com o HTML e deixa só a água-viva no pico */
